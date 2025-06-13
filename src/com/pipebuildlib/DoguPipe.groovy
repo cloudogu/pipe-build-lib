@@ -269,7 +269,7 @@ class DoguPipe extends BasePipe {
         }
 
         if (script.fileExists('Makefile')) {
-            stage('Update Makefile Version') {
+            script.stage('Update Makefile Version') {
                 // Download yq only if needed (optional)
                 sh '''
                     mkdir -p .bin
