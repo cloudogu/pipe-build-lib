@@ -8,12 +8,23 @@ abstract class BasePipe implements Serializable {
 
     BasePipe(script) {
         this.script = script
+        if (this.script) {
+            this.script.echo "[DEBUG] BasePipe constructor: script set successfully"
+        } else {
+            println "[ERROR] BasePipe constructor: script is NULL"
+        }
     }
 
     void addStage(String name,
                   Closure block,
                   String agentLabel = defaultAgent,
                   boolean parallel = false) {
+        if (script) {
+            script.echo "[DEBUG] Adding stage '${name}' on agent '${agentLabel}', parallel=${parallel}"
+        } else {
+            println "[ERROR] Tried to add stage '${name}', but script is NULL"
+        }
+
         stages << new StageDefinition(name, block, agentLabel, parallel)
     }
 
