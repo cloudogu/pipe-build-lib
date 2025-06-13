@@ -74,12 +74,16 @@ abstract class BasePipe implements Serializable {
         }
 
         // Group stages by agent
-        def stagesByAgent = [:].withDefault { [] }
+        def stagesByAgent = [:]
         stages.each { stageDef ->
             def agent = stageDef.agentLabel ?: defaultAgent
             script.echo "[DEBUG] Assigning stage '${stageDef.name}' to agent '${agent}'"
+            if (!stagesByAgent.containsKey(agent)) {
+                stagesByAgent[agent] = []
+            }
             stagesByAgent[agent] << stageDef
         }
+
 
         if (stagesByAgent.isEmpty()) {
             script.echo "[ERROR] stagesByAgent is EMPTY! No stages grouped by agent."
