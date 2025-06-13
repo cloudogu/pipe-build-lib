@@ -15,6 +15,7 @@ class DoguPipe extends BasePipe {
     DoguPipe(script, Map config) {
         super(script)
 
+        // config map vars
         def doguName = config.doguName
         def doguDir = config.doguDirectory ?: "/dogu"
         def backendUser = config.backendUser
@@ -37,9 +38,11 @@ class DoguPipe extends BasePipe {
         def namespace = config.namespace ?: "official"
         def agents = config.agents ?: []
 
+        // local vars
         String releaseTargetBranch = ""
         String releaseVersion = ""
 
+        // Objects
         git = new Git(script, gitUserName)
         git.committerName = gitUserName
         git.committerEmail = committerEmail
@@ -133,26 +136,14 @@ class DoguPipe extends BasePipe {
             trivy.saveFormattedTrivyReport(TrivyScanFormat.HTML)
         }
 
-        addStage("Pre Verify Hook") {
-            preVerifyStage.call(ecoSystem)
-        }
-
         addStage("Verify") {
             ecoSystem.verify(doguDir)
-        }
-
-        addStage("Post Verify Hook") {
-            postVerifyStage.call(ecoSystem)
         }
 
         if (runIntegrationTests) {
             addStage("Integration Tests") {
                 runCypress(ecoSystem, cypressImage)
             }
-        }
-
-        addStage("Post Integration Hook") {
-            postIntegrationStage.call(ecoSystem)
         }
 
         if (script.params.TestDoguUpgrade) {
