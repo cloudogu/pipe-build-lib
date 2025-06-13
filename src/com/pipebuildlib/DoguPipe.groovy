@@ -36,7 +36,6 @@ class DoguPipe extends BasePipe {
         def dependedDogus = config.dependencies ?: []
         def waitForDepTime = config.waitForDepTime ?: 15
         def namespace = config.namespace ?: "official"
-        def agents = config.agents ?: []
 
         // local vars
         String releaseTargetBranch = ""
@@ -53,9 +52,9 @@ class DoguPipe extends BasePipe {
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
         markdown = new Markdown(script, markdownVersion)
 
-        addStage("Checkout", {
+        addStage("Checkout") {
             checkout_updatemakefiles(updateSubmodules)
-        }, agents)
+        }
 
         addStage("Lint") {
             script.lintDockerfile()

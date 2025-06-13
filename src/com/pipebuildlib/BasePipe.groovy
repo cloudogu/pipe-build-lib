@@ -86,6 +86,21 @@ abstract class BasePipe implements Serializable {
         }
     }
 
+    void assignAgentToStage(String name, String agentLabel) {
+        def stage = findStage(name)
+        if (stage) {
+            stage.agentLabel = agentLabel
+        } else {
+            script.echo "[Warning] Cannot assign agent. Stage '${name}' not found."
+        }
+    }
+
+    void assignAgents(Map<String, String> assignments) {
+        assignments.each { name, agent ->
+            assignAgentToStage(name, agent)
+        }
+    }
+
     protected String normalizeStageName(String name) {
         return name.toLowerCase().replaceAll(/\s+/, '')
     }
