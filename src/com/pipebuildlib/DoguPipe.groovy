@@ -263,12 +263,12 @@ class DoguPipe extends BasePipe {
     }
 
     void checkout_updatemakefiles(boolean updateSubmodules) {
-        checkout scm
+        script.checkout script.scm
         if (updateSubmodules) {
             sh 'git submodule update --init'
         }
 
-        if (fileExists('Makefile')) {
+        if (script.fileExists('Makefile')) {
             stage('Update Makefile Version') {
                 // Download yq only if needed (optional)
                 sh '''
