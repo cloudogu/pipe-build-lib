@@ -61,18 +61,31 @@ abstract class BasePipe implements Serializable {
     }
 
     void run() {
-        // Group stages by agent, preserving order
+        if (script) {
+            script.echo "[DEBUG] Starting pipeline with ${stages.size()} stage(s)"
+        } else {
+            println "[ERROR] Cannot run pipeline: script is NULL"
+        }
+
+        if (stages.isEmpty()) {
+            script.echo "[WARN] No stages to run"
+            return
+        }
+
         def stagesByAgent = [:].withDefault { [] }
         stages.each { stageDef ->
+            script.echo "[DEBUG] Assigning stage '${stageDef.name}' to agent '${stageDef.agentLabel}'"
             stagesByAgent[stageDef.agentLabel ?: defaultAgent] << stageDef
         }
 
         stagesByAgent.each { agent, stageList ->
+            script.echo "[DEBUG] Executing stages on agent '${agent}'"
             script.node(agent) {
                 script.timestamps {
                     def parallelStages = [:]
                     stageList.each { s ->
                         if (s.parallel) {
+                            script.echo "[DEBUG] Queuing parallel stage '${s.name}'"
                             parallelStages[s.name] = {
                                 script.stage(s.name) {
                                     s.block.call()
@@ -80,16 +93,18 @@ abstract class BasePipe implements Serializable {
                             }
                         } else {
                             if (!parallelStages.isEmpty()) {
+                                script.echo "[DEBUG] Executing ${parallelStages.size()} parallel stages"
                                 script.parallel parallelStages
                                 parallelStages.clear()
                             }
+                            script.echo "[DEBUG] Executing stage '${s.name}'"
                             script.stage(s.name) {
                                 s.block.call()
                             }
                         }
                     }
-                    // Handle any remaining parallel stages
                     if (!parallelStages.isEmpty()) {
+                        script.echo "[DEBUG] Executing remaining ${parallelStages.size()} parallel stages"
                         script.parallel parallelStages
                     }
                 }
