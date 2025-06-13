@@ -72,7 +72,7 @@ abstract class BasePipe implements Serializable {
             return
         }
 
-        def stagesByAgent = [:].withDefault { [] }
+        def stagesByAgent = [:].withDefault { key -> new ArrayList<StageDefinition>() }
         stages.each { stageDef ->
             script.echo "[DEBUG] Assigning stage '${stageDef.name}' to agent '${stageDef.agentLabel}'"
             stagesByAgent[stageDef.agentLabel ?: defaultAgent] << stageDef
