@@ -265,19 +265,19 @@ class DoguPipe extends BasePipe {
     void checkout_updatemakefiles(boolean updateSubmodules) {
         script.checkout script.scm
         if (updateSubmodules) {
-            sh 'git submodule update --init'
+            script.sh 'git submodule update --init'
         }
 
         if (script.fileExists('Makefile')) {
             script.stage('Update Makefile Version') {
                 // Download yq only if needed (optional)
-                sh '''
+                script.sh '''
                     mkdir -p .bin
                     curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
                     chmod +x .bin/yq
                 '''
                 // Get latest tag from GitHub API
-                String latestVersion = sh(
+                String latestVersion = script.sh(
                     script: "curl -s https://api.github.com/repos/cloudogu/makefiles/releases/latest | grep tag_name | cut -d '\"' -f4",
                     returnStdout: true
                 ).trim()
@@ -285,13 +285,13 @@ class DoguPipe extends BasePipe {
                 // Strip leading "v"
                 String versionNoV = latestVersion.replaceFirst(/^v/, '')
 
-                echo "Latest Makefiles version is ${versionNoV}"
+                script.echo "Latest Makefiles version is ${versionNoV}"
 
                 // Replace version in Makefile
-                sh "sed -i 's/^MAKEFILES_VERSION=.*/MAKEFILES_VERSION=${versionNoV}/' Makefile"
+                script.sh "sed -i 's/^MAKEFILES_VERSION=.*/MAKEFILES_VERSION=${versionNoV}/' Makefile"
 
                 // Manually fetch and apply the Makefiles from the public GitHub tag archive
-                sh 'make update-makefiles'
+                script.sh 'make update-makefiles'
             }
         }
     }
