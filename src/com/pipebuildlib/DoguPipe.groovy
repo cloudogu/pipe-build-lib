@@ -4,6 +4,7 @@ import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
 
 class DoguPipe extends BasePipe {
+
     EcoSystem ecoSystem
     Git git
     GitFlow gitflow
@@ -11,36 +12,18 @@ class DoguPipe extends BasePipe {
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
+    Map config
 
     DoguPipe(script, Map config) {
         super(script)
+        this.config = config
 
         // config map vars
-        def doguName = config.doguName
-        def doguDir = config.doguDirectory ?: "/dogu"
-        def backendUser = config.backendUser
-        def gitUserName = config.gitUser
-        def committerEmail = config.committerEmail
-        def gcloudCredentials = config.gcloudCredentials
-        def sshCredentials = config.sshCredentials
-        def shellScripts = config.shellScripts ?: ''
-        def markdownVersion = config.markdownVersion ?: "3.12.2"
-        def updateSubmodules = config.updateSubmodules ?: false
-        def runIntegrationTests = config.runIntegrationTests ?: false
-        def doBatsTests = config.doBatsTests ?: false
-        def registryConfig = config.registryConfig ?: """"""
-        def registryConfigE = config.registryConfigEncrypted ?: """"""
-        def additionalDependencies = config.additionalDependencies ?: """"""
-        def cypressImage = config.cypressImage ?: "cypress/included:13.15.2"
-        def upgradeCypressImage = config.upgradeCypressImage ?: "cypress/included:13.2.0"
-        def dependedDogus = config.dependencies ?: []
-        def waitForDepTime = config.waitForDepTime ?: 15
-        def namespace = config.namespace ?: "official"
-        def agents = config.agents ?: []
-
-        // local vars
-        String releaseTargetBranch = ""
-        String releaseVersion = ""
+        def gitUserName            = config.gitUser ?: 'cesmarvin'
+        def committerEmail         = config.committerEmail ?: 'cesmarvin@cloudogu.com'
+        def gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
+        def sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
+        def markdownVersion        = config.markdownVersion ?: "3.12.2"
 
         // Objects
         git = new Git(script, gitUserName)
@@ -52,10 +35,34 @@ class DoguPipe extends BasePipe {
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
         markdown = new Markdown(script, markdownVersion)
+    }
 
-        addStage("Checkout", {
+    void addDefaultStages() {
+        script.echo "[DEBUG] Starting pipeline with ${stages.size()} stage(s)"
+
+        def doguName               = config.doguName
+        def doguDir                = config.doguDirectory ?: '/dogu'
+        def backendUser            = config.backendUser ?: 'cesmarvin-setup'
+        def shellScripts           = config.shellScripts ?: ''
+        def updateSubmodules       = config.updateSubmodules ?: false
+        def runIntegrationTests    = config.runIntegrationTests ?: false
+        def doBatsTests            = config.doBatsTests ?: false
+        def registryConfig         = config.registryConfig ?: """"""
+        def registryConfigE        = config.registryConfigEncrypted ?: """"""
+        def additionalDependencies = config.additionalDependencies ?: """"""
+        def cypressImage           = config.cypressImage ?: "cypress/included:13.15.2"
+        def upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.2.0"
+        def dependedDogus          = config.dependencies ?: []
+        def waitForDepTime         = config.waitForDepTime ?: 15
+        def namespace              = config.namespace ?: "official"
+
+        // local vars
+        String releaseTargetBranch = ""
+        String releaseVersion = ""
+
+        addStage("Checkout") {
             checkout_updatemakefiles(updateSubmodules)
-        }, agents)
+        }
 
         addStage("Lint") {
             script.lintDockerfile()
@@ -256,21 +263,21 @@ class DoguPipe extends BasePipe {
     }
 
     void checkout_updatemakefiles(boolean updateSubmodules) {
-        checkout scm
+        script.checkout script.scm
         if (updateSubmodules) {
-            sh 'git submodule update --init'
+            script.sh 'git submodule update --init'
         }
 
-        if (fileExists('Makefile')) {
-            stage('Update Makefile Version') {
+        if (script.fileExists('Makefile')) {
+            script.stage('Update Makefile Version') {
                 // Download yq only if needed (optional)
-                sh '''
+                script.sh '''
                     mkdir -p .bin
                     curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
                     chmod +x .bin/yq
                 '''
                 // Get latest tag from GitHub API
-                String latestVersion = sh(
+                String latestVersion = script.sh(
                     script: "curl -s https://api.github.com/repos/cloudogu/makefiles/releases/latest | grep tag_name | cut -d '\"' -f4",
                     returnStdout: true
                 ).trim()
@@ -278,14 +285,15 @@ class DoguPipe extends BasePipe {
                 // Strip leading "v"
                 String versionNoV = latestVersion.replaceFirst(/^v/, '')
 
-                echo "Latest Makefiles version is ${versionNoV}"
+                script.echo "Latest Makefiles version is ${versionNoV}"
 
                 // Replace version in Makefile
-                sh "sed -i 's/^MAKEFILES_VERSION=.*/MAKEFILES_VERSION=${versionNoV}/' Makefile"
+                script.sh "sed -i 's/^MAKEFILES_VERSION=.*/MAKEFILES_VERSION=${versionNoV}/' Makefile"
 
                 // Manually fetch and apply the Makefiles from the public GitHub tag archive
-                sh 'make update-makefiles'
+                script.sh 'make update-makefiles'
             }
         }
     }
+
 }
