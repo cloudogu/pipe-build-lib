@@ -1,4 +1,4 @@
-package com.pipebuildlib
+package com.cloudogu.sos.pipebuildlib
 
 abstract class BasePipe implements Serializable {
 

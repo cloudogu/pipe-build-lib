@@ -1,5 +1,5 @@
 // src/com/pipebuildlib/PostgresDoguPipeline.groovy
-package com.pipebuildlib
+package com.cloudogu.sos.pipebuildlib
 
 class PostgresDoguPipe extends DoguPipe {
     PostgresDoguPipe(script, Map config) {

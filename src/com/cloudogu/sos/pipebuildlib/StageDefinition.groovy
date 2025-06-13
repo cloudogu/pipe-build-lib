@@ -1,4 +1,4 @@
-package com.pipebuildlib
+package com.cloudogu.sos.pipebuildlib
 
 class StageDefinition implements Serializable {
     final String name
