@@ -37,7 +37,9 @@ class DoguPipe extends BasePipe {
         markdown = new Markdown(script, markdownVersion)
     }
 
-    protected void addDefaultStages() {
+    void addDefaultStages() {
+        script.echo "[DEBUG] Starting pipeline with ${stages.size()} stage(s)"
+
         def doguName               = config.doguName
         def doguDir                = config.doguDirectory ?: '/dogu'
         def backendUser            = config.backendUser ?: 'cesmarvin-setup'
