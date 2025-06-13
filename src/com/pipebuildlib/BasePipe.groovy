@@ -61,51 +61,61 @@ abstract class BasePipe implements Serializable {
     }
 
     void run() {
-        if (script) {
-            script.echo "[DEBUG] Starting pipeline with ${stages.size()} stage(s)"
-        } else {
+        if (!script) {
             println "[ERROR] Cannot run pipeline: script is NULL"
+            return
         }
+
+        script.echo "[DEBUG] Starting pipeline with ${stages.size()} stage(s)"
 
         if (stages.isEmpty()) {
             script.echo "[WARN] No stages to run"
             return
         }
 
-        def stagesByAgent = [:].withDefault { key -> new ArrayList<StageDefinition>() }
+        // Group stages by agent
+        def stagesByAgent = [:].withDefault { [] }
         stages.each { stageDef ->
-            script.echo "[DEBUG] Assigning stage '${stageDef.name}' to agent '${stageDef.agentLabel}'"
-            stagesByAgent[stageDef.agentLabel ?: defaultAgent] << stageDef
+            def agent = stageDef.agentLabel ?: defaultAgent
+            script.echo "[DEBUG] Assigning stage '${stageDef.name}' to agent '${agent}'"
+            stagesByAgent[agent] << stageDef
         }
 
+        if (stagesByAgent.isEmpty()) {
+            script.echo "[ERROR] stagesByAgent is EMPTY! No stages grouped by agent."
+            return
+        }
+
+        // Execute each group
         stagesByAgent.each { agent, stageList ->
-            script.echo "[DEBUG] Executing stages on agent '${agent}'"
+            script.echo "[DEBUG] Executing ${stageList.size()} stages on agent '${agent}'"
+
             script.node(agent) {
                 script.timestamps {
-                    def parallelStages = [:]
-                    stageList.each { s ->
-                        if (s.parallel) {
-                            script.echo "[DEBUG] Queuing parallel stage '${s.name}'"
-                            parallelStages[s.name] = {
-                                script.stage(s.name) {
-                                    s.block.call()
+                    def parallelStages = stageList.findAll { it.parallel }
+                    def sequentialStages = stageList.findAll { !it.parallel }
+
+                    // Run parallel stages if any
+                    if (!parallelStages.isEmpty()) {
+                        script.echo "[DEBUG] Running ${parallelStages.size()} parallel stage(s)"
+                        def parallelMap = [:]
+                        parallelStages.each { stageDef ->
+                            parallelMap[stageDef.name] = {
+                                script.stage(stageDef.name) {
+                                    script.echo "[DEBUG] Running parallel stage '${stageDef.name}'"
+                                    stageDef.block.call()
                                 }
                             }
-                        } else {
-                            if (!parallelStages.isEmpty()) {
-                                script.echo "[DEBUG] Executing ${parallelStages.size()} parallel stages"
-                                script.parallel parallelStages
-                                parallelStages.clear()
-                            }
-                            script.echo "[DEBUG] Executing stage '${s.name}'"
-                            script.stage(s.name) {
-                                s.block.call()
-                            }
                         }
+                        script.parallel parallelMap
                     }
-                    if (!parallelStages.isEmpty()) {
-                        script.echo "[DEBUG] Executing remaining ${parallelStages.size()} parallel stages"
-                        script.parallel parallelStages
+
+                    // Run sequential stages
+                    sequentialStages.each { stageDef ->
+                        script.echo "[DEBUG] Running sequential stage '${stageDef.name}'"
+                        script.stage(stageDef.name) {
+                            stageDef.block.call()
+                        }
                     }
                 }
             }
