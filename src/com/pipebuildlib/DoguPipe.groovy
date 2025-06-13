@@ -4,6 +4,7 @@ import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
 
 class DoguPipe extends BasePipe {
+
     EcoSystem ecoSystem
     Git git
     GitFlow gitflow
@@ -11,20 +12,36 @@ class DoguPipe extends BasePipe {
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
+    Map config
 
     DoguPipe(script, Map config) {
         super(script)
+        this.config = config
 
         // config map vars
-        def doguName               = config.doguName
-        def doguDir                = config.doguDirectory ?: '/dogu'
-        def backendUser            = config.backendUser ?: 'cesmarvin-setup'
         def gitUserName            = config.gitUser ?: 'cesmarvin'
         def committerEmail         = config.committerEmail ?: 'cesmarvin@cloudogu.com'
         def gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         def sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
-        def shellScripts           = config.shellScripts ?: ''
         def markdownVersion        = config.markdownVersion ?: "3.12.2"
+
+        // Objects
+        git = new Git(script, gitUserName)
+        git.committerName = gitUserName
+        git.committerEmail = committerEmail
+        gitflow = new GitFlow(script, git)
+        github = new GitHub(script, git)
+        changelog = new Changelog(script)
+        ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
+        vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
+        markdown = new Markdown(script, markdownVersion)
+    }
+
+    protected void addDefaultStages() {
+        def doguName               = config.doguName
+        def doguDir                = config.doguDirectory ?: '/dogu'
+        def backendUser            = config.backendUser ?: 'cesmarvin-setup'
+        def shellScripts           = config.shellScripts ?: ''
         def updateSubmodules       = config.updateSubmodules ?: false
         def runIntegrationTests    = config.runIntegrationTests ?: false
         def doBatsTests            = config.doBatsTests ?: false
@@ -40,17 +57,6 @@ class DoguPipe extends BasePipe {
         // local vars
         String releaseTargetBranch = ""
         String releaseVersion = ""
-
-        // Objects
-        git = new Git(script, gitUserName)
-        git.committerName = gitUserName
-        git.committerEmail = committerEmail
-        gitflow = new GitFlow(script, git)
-        github = new GitHub(script, git)
-        changelog = new Changelog(script)
-        ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
-        vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
-        markdown = new Markdown(script, markdownVersion)
 
         addStage("Checkout") {
             checkout_updatemakefiles(updateSubmodules)
@@ -287,4 +293,5 @@ class DoguPipe extends BasePipe {
             }
         }
     }
+
 }
