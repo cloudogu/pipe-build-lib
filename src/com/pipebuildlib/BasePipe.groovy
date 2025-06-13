@@ -101,6 +101,48 @@ abstract class BasePipe implements Serializable {
         }
     }
 
+    void removeStage(String name) {
+        def norm = normalizeStageName(name)
+        def removed = stages.find { normalizeStageName(it.name) == norm }
+        if (removed) {
+            stages.remove(removed)
+        } else {
+            script.echo "[Warning] Tried to remove non-existent stage '${name}'"
+        }
+    }
+
+    void moveStageAfter(String stageToMove, String targetStage) {
+        def normMove = normalizeStageName(stageToMove)
+        def normTarget = normalizeStageName(targetStage)
+
+        def moveIndex = stages.findIndexOf { normalizeStageName(it.name) == normMove }
+        def targetIndex = stages.findIndexOf { normalizeStageName(it.name) == normTarget }
+
+        if (moveIndex < 0) {
+            script.echo "[Warning] Stage '${stageToMove}' not found for move"
+            return
+        }
+
+        if (targetIndex < 0) {
+            script.echo "[Warning] Target stage '${targetStage}' not found for insertion"
+            return
+        }
+
+        if (moveIndex == targetIndex || moveIndex == targetIndex + 1) {
+            // No need to move
+            return
+        }
+
+        def stageDef = stages.remove(moveIndex)
+
+        // Adjust index if we removed from earlier
+        if (moveIndex < targetIndex) {
+            targetIndex -= 1
+        }
+
+        stages.add(targetIndex + 1, stageDef)
+    }
+
     protected String normalizeStageName(String name) {
         return name.toLowerCase().replaceAll(/\s+/, '')
     }
