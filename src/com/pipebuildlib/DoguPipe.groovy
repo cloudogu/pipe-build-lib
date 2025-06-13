@@ -16,26 +16,26 @@ class DoguPipe extends BasePipe {
         super(script)
 
         // config map vars
-        def doguName = config.doguName
-        def doguDir = config.doguDirectory ?: "/dogu"
-        def backendUser = config.backendUser
-        def gitUserName = config.gitUser
-        def committerEmail = config.committerEmail
-        def gcloudCredentials = config.gcloudCredentials
-        def sshCredentials = config.sshCredentials
-        def shellScripts = config.shellScripts ?: ''
-        def markdownVersion = config.markdownVersion ?: "3.12.2"
-        def updateSubmodules = config.updateSubmodules ?: false
-        def runIntegrationTests = config.runIntegrationTests ?: false
-        def doBatsTests = config.doBatsTests ?: false
-        def registryConfig = config.registryConfig ?: """"""
-        def registryConfigE = config.registryConfigEncrypted ?: """"""
+        def doguName               = config.doguName
+        def doguDir                = config.doguDirectory ?: '/dogu'
+        def backendUser            = config.backendUser ?: 'cesmarvin-setup'
+        def gitUserName            = config.gitUser ?: 'cesmarvin'
+        def committerEmail         = config.committerEmail ?: 'cesmarvin@cloudogu.com'
+        def gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
+        def sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
+        def shellScripts           = config.shellScripts ?: ''
+        def markdownVersion        = config.markdownVersion ?: "3.12.2"
+        def updateSubmodules       = config.updateSubmodules ?: false
+        def runIntegrationTests    = config.runIntegrationTests ?: false
+        def doBatsTests            = config.doBatsTests ?: false
+        def registryConfig         = config.registryConfig ?: """"""
+        def registryConfigE        = config.registryConfigEncrypted ?: """"""
         def additionalDependencies = config.additionalDependencies ?: """"""
-        def cypressImage = config.cypressImage ?: "cypress/included:13.15.2"
-        def upgradeCypressImage = config.upgradeCypressImage ?: "cypress/included:13.2.0"
-        def dependedDogus = config.dependencies ?: []
-        def waitForDepTime = config.waitForDepTime ?: 15
-        def namespace = config.namespace ?: "official"
+        def cypressImage           = config.cypressImage ?: "cypress/included:13.15.2"
+        def upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.2.0"
+        def dependedDogus          = config.dependencies ?: []
+        def waitForDepTime         = config.waitForDepTime ?: 15
+        def namespace              = config.namespace ?: "official"
 
         // local vars
         String releaseTargetBranch = ""
