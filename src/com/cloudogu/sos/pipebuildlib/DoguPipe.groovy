@@ -251,8 +251,31 @@ end
         }
 
         addStageGroup(this.agentVagrant) { group ->
-            group.stage("Checkout", PipelineMode.INTEGRATION) {
+            group.stage("Checkout", [PipelineMode.INTEGRATION, PipelineMode.RELEASE]) {
                 checkout_updatemakefiles(updateSubmodules)
+            }
+
+            group.raw_stage('Make dogu Release', PipelineMode.RELEASE) {
+                if (!script.params.ReleaseTag?.trim()) {
+                    script.error("ReleaseTag must be provided in RELEASE mode!")
+                }
+                script.stage('Run dogu-release') {
+                    script.sh """
+                        {
+                            echo '${script.params.ReleaseTag}'
+                            yes ok
+                        } | make dogu-release
+                    """
+                }
+            }
+
+            group.stage('Run dogu-release') {
+                script.sh """
+                    { 
+                        echo '${script.params.ReleaseTag}'
+                        yes ok
+                    } | make dogu-release
+                """
             }
 
             group.stage("Provision", PipelineMode.INTEGRATION) {
@@ -410,21 +433,55 @@ end
 
     @Override
     void setBuildProperties(List<ParameterDefinition> customParams = null) {
-        def defaultParams = [
-            script.choice(
-                name: 'PipelineMode',
-                choices: ['FULL', 'STATIC', 'INTEGRATION'],
-                defaultValue: 'FULL',
-                description: 'Select pipeline mode'
-            ),
+        // Dynamically build the choices list
+        def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
 
-            script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
-            script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
-            script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
-            script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
-            script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
-            script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found')
-        ]
+        // Check branch name, add RELEASE if on develop
+        if (script.env.BRANCH_NAME == 'develop') {
+            pipelineModeChoices << 'RELEASE'
+        }
+        def defaultParams = []
+
+        if (script.env.BRANCH_NAME == 'develop') {
+            
+            // Fetch latest version from GitHub API
+            String latestVersion = fetchLatestGithubRelease(this.doguName)
+
+            defaultParams = [
+                script.choice(
+                    name: 'PipelineMode',
+                    choices: pipelineModeChoices,
+                    defaultValue: 'FULL',
+                    description: 'Select pipeline mode'
+                ),
+                script.string(
+                    name: 'ReleaseTag',
+                    defaultValue: '',
+                    description:"Only required if PipelineMode=RELEASE. Enter new release tag.\nCurrent Release Version: ${latestVersion}"
+                ),
+                script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
+                script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
+                script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
+                script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
+                script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
+                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found')
+            ]
+        } else {
+            defaultParams = [
+                script.choice(
+                    name: 'PipelineMode',
+                    choices: pipelineModeChoices,
+                    defaultValue: 'FULL',
+                    description: 'Select pipeline mode'
+                ),
+                script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
+                script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
+                script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
+                script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
+                script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
+                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found')
+            ]            
+        }
 
         script.properties([
             script.buildDiscarder(script.logRotator(numToKeepStr: '10')),
@@ -442,11 +499,35 @@ end
         }
     }
 
+    String fetchLatestGithubRelease(String doguName) {
+        // You may want to adapt the URL to your repo
+        def githubApiUrl = "https://api.github.com/repos/cloudogu/${doguName}/releases/latest"
+
+        try {
+            def response = script.httpRequest(
+                url: githubApiUrl,
+                httpMode: 'GET',
+                acceptType: 'APPLICATION_JSON',
+                consoleLogResponseBody: false,
+                validResponseCodes: '200'
+            )
+            def json = new groovy.json.JsonSlurper().parseText(response.content)
+            return json.tag_name ?: "unknown"
+        } catch (Exception e) {
+            script.echo "Failed to fetch release version: ${e}"
+            return "unknown"
+        }
+    }
+
     void checkout_updatemakefiles(boolean updateSubmodules) {
         script.checkout script.scm
         if (updateSubmodules) {
             script.sh 'git submodule update --init'
         }
+
+        def jsonContent = script.readFile("${this.doguDir}/dogu.json")
+        def doguJson = new groovy.json.JsonSlurper().parseText(jsonContent)
+        this.namespace = doguJson?.Name?.split('/')?.getAt(0) ?: "official"
 
         if (script.fileExists('Makefile')) {
             script.stage('Update Makefile Version') {

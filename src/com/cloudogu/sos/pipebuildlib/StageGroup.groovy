@@ -9,6 +9,10 @@ class StageGroup implements Serializable {
         this.agentLabel = agentLabel
     }
 
+    void raw_stage(String name, PipelineMode mode, Closure block) {
+        stages << new StageDefinition(name, EnumSet.of(PipelineMode.mode), block)
+    }
+
     void stage(String name, Closure block) {
         stage(name, EnumSet.of(PipelineMode.FULL), block)
     }
