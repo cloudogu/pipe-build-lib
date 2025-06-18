@@ -251,7 +251,7 @@ end
         }
 
         addStageGroup(this.agentVagrant) { group ->
-            group.stage("Checkout", [PipelineMode.INTEGRATION, PipelineMode.RELEASE]) {
+            group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION, PipelineMode.RELEASE)) {
                 checkout_updatemakefiles(updateSubmodules)
             }
 
