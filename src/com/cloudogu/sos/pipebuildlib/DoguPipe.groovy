@@ -393,21 +393,29 @@ EOF
 
             if (gitflow.isReleaseBranch()) {
                 group.stage('Retrieving Release Branch') {
-                    script.sh 'git fetch origin +refs/heads/*:refs/remotes/origin/*'
-                    releaseVersion = git.getSimpleBranchName()
-                    releaseTargetBranch = script.sh(
-                        script: '''
-                        if git show-ref --verify --quiet refs/remotes/origin/main; then
-                            echo main
-                        elif git show-ref --verify --quiet refs/remotes/origin/master; then
-                            echo master
-                        else
-                            exit 1
-                        fi
-                        ''',
-                        returnStdout: true
-                    ).trim()
-                    script.echo "[DEBUG] release branch: ${releaseTargetBranch}"
+                    script.withCredentials([script.usernamePassword(
+                        credentialsId: 'cesmarvin',
+                        usernameVariable: 'GIT_AUTH_USR',
+                        passwordVariable: 'GIT_AUTH_PSW'
+                    )]) {
+                        script.sh """
+                            git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
+                            git fetch origin +refs/heads/*:refs/remotes/origin/*
+
+                            release_target=\$(if git show-ref --verify --quiet refs/remotes/origin/main; then
+                                echo main
+                            elif git show-ref --verify --quiet refs/remotes/origin/master; then
+                                echo master
+                            else
+                                exit 1
+                            fi)
+
+                            echo "\$release_target" > release_target.txt
+                        """
+                        releaseVersion = git.getSimpleBranchName()
+                        releaseTargetBranch = script.readFile('release_target.txt').trim()
+                        script.echo "[DEBUG] release branch: ${releaseTargetBranch}"
+                    }
                 }
                 group.stage('Finish Release') {
                     // Optionally, target branch can be provided (default "main")
@@ -541,10 +549,6 @@ EOF
             script.echo "Failed to fetch release version: ${e}"
             return "unknown"
         }
-    }
-
-    def jenkinsFriendlyDeepClone(obj) {
-        return new groovy.json.JsonSlurper().parseText(groovy.json.JsonOutput.toJson(obj))
     }
 
     void checkout_updatemakefiles(boolean updateSubmodules) {
