@@ -51,7 +51,23 @@ class DoguPipe extends BasePipe {
         this.markdownVersion        = config.markdownVersion ?: "3.11.0"
         this.agentStatic            = config.agentStatic ?: "sos"
         this.agentVagrant           = config.agentVagrant ?: "sos-stable"
-
+        this.doguName               = config.doguName
+        this.doguDir                = config.doguDirectory ?: '/dogu'
+        this.backendUser            = config.backendUser ?: 'cesmarvin-setup'
+        this.shellScripts           = config.shellScripts ?: ''
+        this.updateSubmodules       = config.updateSubmodules ?: false
+        this.runIntegrationTests    = config.runIntegrationTests ?: false
+        this.doBatsTests            = config.doBatsTests ?: false
+        this.registryConfig         = config.registryConfig ?: """"""
+        this.registryConfigE        = config.registryConfigEncrypted ?: """"""
+        this.additionalDependencies = config.additionalDependencies ?: """"""
+        this.cypressImage           = config.cypressImage ?: "cypress/included:13.17.0"
+        this.upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.17.0"
+        this.dependedDogus          = config.dependencies ?: []
+        this.waitForDepTime         = config.waitForDepTime ?: 15
+        this.namespace              = config.namespace ?: "official"
+        this.doSonarTests           = config.doSonarTests ?: false
+        
         // Objects
         git = new Git(script, gitUserName)
         git.committerName = gitUserName
@@ -154,23 +170,6 @@ end
         String pipelineMode = script.params.pipelineMode ?: "FULL"
         script.echo "[INFO] Pipeline mode selected: ${pipelineMode}"
 
-        this.doguName               = config.doguName
-        this.doguDir                = config.doguDirectory ?: '/dogu'
-        this.backendUser            = config.backendUser ?: 'cesmarvin-setup'
-        this.shellScripts           = config.shellScripts ?: ''
-        this.updateSubmodules       = config.updateSubmodules ?: false
-        this.runIntegrationTests    = config.runIntegrationTests ?: false
-        this.doBatsTests            = config.doBatsTests ?: false
-        this.registryConfig         = config.registryConfig ?: """"""
-        this.registryConfigE        = config.registryConfigEncrypted ?: """"""
-        this.additionalDependencies = config.additionalDependencies ?: """"""
-        this.cypressImage           = config.cypressImage ?: "cypress/included:13.17.0"
-        this.upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.17.0"
-        this.dependedDogus          = config.dependencies ?: []
-        this.waitForDepTime         = config.waitForDepTime ?: 15
-        this.namespace              = config.namespace ?: "official"
-        this.doSonarTests           = config.doSonarTests ?: false
-
         // local vars
         String releaseTargetBranch = ""
         String releaseVersion = ""
@@ -251,31 +250,56 @@ end
         }
 
         addStageGroup(this.agentVagrant) { group ->
-            group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION, PipelineMode.RELEASE)) {
+            group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION)) {
                 checkout_updatemakefiles(updateSubmodules)
             }
 
-            group.raw_stage('Make dogu Release', PipelineMode.RELEASE) {
-                if (!script.params.ReleaseTag?.trim()) {
-                    script.error("ReleaseTag must be provided in RELEASE mode!")
-                }
-                script.stage('Run dogu-release') {
-                    script.sh """
-                        {
-                            echo '${script.params.ReleaseTag}'
-                            yes ok
-                        } | make dogu-release
-                    """
-                }
+        group.raw_stage('Make dogu Release', PipelineMode.RELEASE) {
+            if (!script.params.ReleaseTag?.trim()) {
+                script.error("ReleaseTag must be provided in RELEASE mode!")
             }
 
-            group.stage('Run dogu-release') {
-                script.sh """
-                    { 
-                        echo '${script.params.ReleaseTag}'
-                        yes ok
-                    } | make dogu-release
-                """
+            script.checkout script.scm
+            script.sh "git config 'remote.origin.fetch' '+refs/heads/*:refs/remotes/origin/*'"
+            gitWithCredentials("fetch --all")
+            if (updateSubmodules) {
+                script.sh 'git submodule update --init'
+            }
+
+            def releaseTagRaw = script.params.ReleaseTag?.trim()
+            def releaseTag = releaseTagRaw.replaceFirst(/^v/, '')
+
+            script.sh '''
+                mkdir -p .bin
+                curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
+                chmod +x .bin/yq
+                sudo apt install git-flow -y
+            '''
+
+            script.withCredentials([script.usernamePassword(
+                credentialsId: 'cesmarvin',
+                usernameVariable: 'GIT_AUTH_USR',
+                passwordVariable: 'GIT_AUTH_PSW'
+            )]) {
+                script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
+                    script.sh '''
+                        cat > ./git-askpass.sh <<'EOF'
+#!/bin/sh
+case "$1" in
+  Username*) echo "$GIT_AUTH_USR" ;;
+  Password*) echo "$GIT_AUTH_PSW" ;;
+esac
+EOF
+                chmod +x ./git-askpass.sh
+                export GIT_ASKPASS=./git-askpass.sh
+
+                {
+                    echo "$RELEASE_TAG"
+                    yes ok
+                } | make dogu-release
+            '''
+                    }
+                }
             }
 
             group.stage("Provision", PipelineMode.INTEGRATION) {
@@ -435,18 +459,10 @@ end
     void setBuildProperties(List<ParameterDefinition> customParams = null) {
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
-
-        // Check branch name, add RELEASE if on develop
-        if (script.env.BRANCH_NAME == 'develop') {
-            pipelineModeChoices << 'RELEASE'
-        }
         def defaultParams = []
 
         if (script.env.BRANCH_NAME == 'develop') {
-            
-            // Fetch latest version from GitHub API
-            String latestVersion = fetchLatestGithubRelease(this.doguName)
-
+            pipelineModeChoices << 'RELEASE'
             defaultParams = [
                 script.choice(
                     name: 'PipelineMode',
@@ -457,7 +473,7 @@ end
                 script.string(
                     name: 'ReleaseTag',
                     defaultValue: '',
-                    description:"Only required if PipelineMode=RELEASE. Enter new release tag.\nCurrent Release Version: ${latestVersion}"
+                    description:"Only required if PipelineMode=RELEASE. Enter new release tag."
                 ),
                 script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
                 script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
@@ -500,23 +516,35 @@ end
     }
 
     String fetchLatestGithubRelease(String doguName) {
-        // You may want to adapt the URL to your repo
         def githubApiUrl = "https://api.github.com/repos/cloudogu/${doguName}/releases/latest"
 
         try {
-            def response = script.httpRequest(
-                url: githubApiUrl,
-                httpMode: 'GET',
-                acceptType: 'APPLICATION_JSON',
-                consoleLogResponseBody: false,
-                validResponseCodes: '200'
-            )
-            def json = new groovy.json.JsonSlurper().parseText(response.content)
-            return json.tag_name ?: "unknown"
+            script.withCredentials([script.usernamePassword(
+                credentialsId: 'cesmarvin',
+                usernameVariable: 'GIT_AUTH_USR',
+                passwordVariable: 'GIT_AUTH_PSW'
+            )]) {
+                def response = script.httpRequest(
+                    url: githubApiUrl,
+                    httpMode: 'GET',
+                    acceptType: 'APPLICATION_JSON',
+                    customHeaders: [
+                        [name: 'Authorization', value: "Basic ${"${GIT_AUTH_USR}:${GIT_AUTH_PSW}".bytes.encodeBase64().toString()}"]
+                    ],
+                    consoleLogResponseBody: false,
+                    validResponseCodes: '200'
+                )
+                def json = new groovy.json.JsonSlurper().parseText(response.content)
+                return json.tag_name ?: "unknown"
+            }
         } catch (Exception e) {
             script.echo "Failed to fetch release version: ${e}"
             return "unknown"
         }
+    }
+
+    def jenkinsFriendlyDeepClone(obj) {
+        return new groovy.json.JsonSlurper().parseText(groovy.json.JsonOutput.toJson(obj))
     }
 
     void checkout_updatemakefiles(boolean updateSubmodules) {
@@ -525,20 +553,16 @@ end
             script.sh 'git submodule update --init'
         }
 
-        def jsonContent = script.readFile("${this.doguDir}/dogu.json")
-        def doguJson = new groovy.json.JsonSlurper().parseText(jsonContent)
-        this.namespace = doguJson?.Name?.split('/')?.getAt(0) ?: "official"
-
         if (script.fileExists('Makefile')) {
             script.stage('Update Makefile Version') {
 
                 // sos image has already yq installed
-                // // Download yq only if needed (optional)
-                // script.sh '''
-                //     mkdir -p .bin
-                //     curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
-                //     chmod +x .bin/yq
-                // '''
+                // Download yq only if needed (optional)
+                script.sh '''
+                    mkdir -p .bin
+                    curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
+                    chmod +x .bin/yq
+                '''
                 // Get latest tag from GitHub API
                 String latestVersion = script.sh(
                     script: "curl -s https://api.github.com/repos/cloudogu/makefiles/releases/latest | grep tag_name | cut -d '\"' -f4",
@@ -558,5 +582,4 @@ end
             }
         }
     }
-
 }

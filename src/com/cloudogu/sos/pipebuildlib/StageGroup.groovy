@@ -10,7 +10,7 @@ class StageGroup implements Serializable {
     }
 
     void raw_stage(String name, PipelineMode mode, Closure block) {
-        stages << new StageDefinition(name, EnumSet.of(PipelineMode.mode), block)
+        stages << new StageDefinition(name, EnumSet.of(mode), block)
     }
 
     void stage(String name, Closure block) {
