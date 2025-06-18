@@ -38,14 +38,15 @@ class DoguPipe extends BasePipe {
     String markdownVersion
     String agentStatic
     String agentVagrant
+    final String githubId = 'cesmarvin'
 
     DoguPipe(script, Map config) {
         super(script)
         this.config = config
 
         // config map vars
-        this.gitUserName            = config.gitUser ?: 'cesmarvin'
-        this.committerEmail         = config.committerEmail ?: 'cesmarvin@cloudogu.com'
+        this.gitUserName            = config.gitUser ?: this.githubId
+        this.committerEmail         = config.committerEmail ?: "${this.gitUserName}@cloudogu.com"
         this.gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         this.sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
         this.markdownVersion        = config.markdownVersion ?: "3.11.0"
@@ -277,7 +278,7 @@ end
             '''
 
             script.withCredentials([script.usernamePassword(
-                credentialsId: 'cesmarvin',
+                credentialsId: this.gitUserName,
                 usernameVariable: 'GIT_AUTH_USR',
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
@@ -394,7 +395,7 @@ EOF
             if (gitflow.isReleaseBranch()) {
                 group.stage('Retrieving Release Branch') {
                     script.withCredentials([script.usernamePassword(
-                        credentialsId: 'cesmarvin',
+                        credentialsId: this.gitUserName,
                         usernameVariable: 'GIT_AUTH_USR',
                         passwordVariable: 'GIT_AUTH_PSW'
                     )]) {
@@ -515,7 +516,7 @@ EOF
     }
 
     void gitWithCredentials(String command) {
-        script.withCredentials([script.usernamePassword(credentialsId: 'cesmarvin', usernameVariable: 'GIT_AUTH_USR', passwordVariable: 'GIT_AUTH_PSW')]) {
+        script.withCredentials([script.usernamePassword(credentialsId: this.gitUserName, usernameVariable: 'GIT_AUTH_USR', passwordVariable: 'GIT_AUTH_PSW')]) {
             script.sh(
                     script: "git -c credential.helper=\"!f() { echo username='\$GIT_AUTH_USR'; echo password='\$GIT_AUTH_PSW'; }; f\" " + command,
                     returnStdout: true
@@ -528,7 +529,7 @@ EOF
 
         try {
             script.withCredentials([script.usernamePassword(
-                credentialsId: 'cesmarvin',
+                credentialsId: this.gitUserName,
                 usernameVariable: 'GIT_AUTH_USR',
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
