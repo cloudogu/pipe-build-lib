@@ -299,8 +299,8 @@ end
                 def target = script.readFile('release_target.txt').trim()
 
                 script.sh """
-                    git config gitflow.branch.master ${target}
-                    git config gitflow.branch.develop develop
+                    git checkout ${target}
+                    git checkout develop
                 """
 
 
