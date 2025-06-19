@@ -282,8 +282,30 @@ end
                 usernameVariable: 'GIT_AUTH_USR',
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
-                script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
-                    script.sh '''
+                script.sh """
+                    git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
+                    git fetch origin +refs/heads/*:refs/remotes/origin/*
+
+                    if git show-ref --verify --quiet refs/remotes/origin/main; then
+                        echo main > release_target.txt
+                    elif git show-ref --verify --quiet refs/remotes/origin/master; then
+                        echo master > release_target.txt
+                    else
+                        echo "Neither main nor master found!" >&2
+                        exit 1
+                    fi
+                """
+
+                def target = script.readFile('release_target.txt').trim()
+
+                script.sh """
+                    git config gitflow.branch.master ${target}
+                    git config gitflow.branch.develop develop
+                """
+
+
+            script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
+                script.sh '''
                         cat > ./git-askpass.sh <<'EOF'
 #!/bin/sh
 case "$1" in
