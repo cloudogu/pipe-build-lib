@@ -39,6 +39,7 @@ class DoguPipe extends BasePipe {
     String agentStatic
     String agentVagrant
     String releaseWebhookUrlSecret
+    
     final String githubId = 'cesmarvin'
 
     DoguPipe(script, Map config) {
@@ -468,11 +469,11 @@ EOF
     }
 
     void notifyRelease() {
-        def webhookSecret = script.releaseWebhookUrlSecret
+        def webhookSecret = this.releaseWebhookUrlSecret
         script.withCredentials([script.string(credentialsId: webhookSecret, variable: 'webhookUrl')]) {
             def repoUrl = script.git.getRepositoryUrl()
             def releaseVersion = script.git.getSimpleBranchName()
-            def doguName = script.doguName
+            def doguName = this.doguName
             def messageText = "New Dogu Release : *<${repoUrl}|${doguName}>*\nVersion:*${releaseVersion}*\n<${repoUrl}/releases/tag/${releaseVersion}|View Changelog>"
             def messageTextclean = messageText
     
