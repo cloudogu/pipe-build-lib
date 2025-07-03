@@ -38,6 +38,7 @@ class DoguPipe extends BasePipe {
     String markdownVersion
     String agentStatic
     String agentVagrant
+    String releaseWebhookUrlSecret
     final String githubId = 'cesmarvin'
 
     DoguPipe(script, Map config) {
