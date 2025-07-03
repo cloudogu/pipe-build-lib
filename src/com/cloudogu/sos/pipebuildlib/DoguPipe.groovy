@@ -68,6 +68,7 @@ class DoguPipe extends BasePipe {
         this.waitForDepTime         = config.waitForDepTime ?: 15
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
+        this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
         
         // Objects
         git = new Git(script, gitUserName)
@@ -450,6 +451,9 @@ EOF
                 group.stage('Add Github-Release') {
                     github.createReleaseWithChangelog(releaseVersion, changelog, releaseTargetBranch)
                 }
+                group.stage('Notfiy Webhook - Release') {
+                    notifyRelease()
+                }
             } else if (gitflow.isPreReleaseBranch()) {
                 group.stage("Push Prerelease Dogu to registry") {
                     ecoSystem.pushPreRelease(doguDir)
@@ -458,6 +462,34 @@ EOF
 
             group.stage("Clean") {
                 ecoSystem.destroy()
+            }
+        }
+    }
+
+    void notifyRelease() {
+        def webhookSecret = script.releaseWebhookUrlSecret
+        script.withCredentials([script.string(credentialsId: webhookSecret, variable: 'webhookUrl')]) {
+            def repoUrl = script.git.getRepositoryUrl()
+            def releaseVersion = script.git.getSimpleBranchName()
+            def doguName = script.doguName
+            def messageText = "New Dogu Release : *<${repoUrl}|${doguName}>*\nVersion:*${releaseVersion}*\n<${repoUrl}/releases/tag/${releaseVersion}|View Changelog>"
+            def messageTextclean = messageText
+    
+            def message = [
+                text: messageTextclean,
+                formattedText: messageText
+            ]
+        
+            try {
+                def response = script.httpRequest(
+                    httpMode: 'POST',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: groovy.json.JsonOutput.toJson(message),
+                    url: webhookUrl
+                )
+                script.echo "Notification sent to Google Chat: ${response.status} ${response.content}"
+            } catch (Exception notifyError) {
+                script.echo "Failed to send notification to Google Chat: ${notifyError.getMessage()}"
             }
         }
     }
