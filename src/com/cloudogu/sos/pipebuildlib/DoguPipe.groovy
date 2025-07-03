@@ -471,10 +471,15 @@ EOF
     void notifyRelease() {
         def webhookSecret = this.releaseWebhookUrlSecret
         script.withCredentials([script.string(credentialsId: webhookSecret, variable: 'webhookUrl')]) {
-            def repoUrl = git.getRepositoryUrl()
+            def repoUrl = git.getRepositoryUrl().replaceFirst(/\.git$/, '')
             def releaseVersion = git.getSimpleBranchName()
             def doguName = this.doguName
-            def messageText = "New Dogu Release : *<${repoUrl}|${doguName}>*\nVersion:*${releaseVersion}*\n<${repoUrl}/releases/tag/${releaseVersion}|View Changelog>"
+            def messageText = """\
+*New Dogu Release*
+• Project: *<${repoUrl}|${doguName}>*
+• Version: *${releaseVersion}*
+• <${repoUrl}/releases/tag/${releaseVersion}|View Changelog>
+""".stripIndent()
             def messageTextclean = messageText
     
             def message = [
