@@ -41,6 +41,8 @@ class DoguPipe extends BasePipe {
     String releaseWebhookUrlSecret
 
     final String githubId = 'cesmarvin'
+    final String machineType = 'n2-standard-8'
+
 
     DoguPipe(script, Map config) {
         super(script)
@@ -108,7 +110,7 @@ class DoguPipe extends BasePipe {
         }
 
         // overriding vagrant configuration so that sos image is used and labels set
-        ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = "n2-standard-8" ->
+        ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = machineType ->
         def jenkinsUser = ecoSystem.getJenkinsUser()
         def pipelineName = ecoSystem.getPipelineName()
         script.writeFile file: 'Vagrantfile', text: """
@@ -332,7 +334,7 @@ EOF
                 if (gitflow.isPreReleaseBranch()) {
                     script.sh "make prerelease_namespace"
                 }
-                ecoSystem.provision(doguDir)
+                ecoSystem.provision(doguDir, machineType)
             }
 
             group.stage("Setup", PipelineMode.INTEGRATION) {
