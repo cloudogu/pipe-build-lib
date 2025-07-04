@@ -108,7 +108,7 @@ class DoguPipe extends BasePipe {
         }
 
         // overriding vagrant configuration so that sos image is used and labels set
-        ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = "n4-standard-8" ->
+        ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = "n2-standard-8" ->
         def jenkinsUser = ecoSystem.getJenkinsUser()
         def pipelineName = ecoSystem.getPipelineName()
         script.writeFile file: 'Vagrantfile', text: """
@@ -132,7 +132,7 @@ Vagrant.configure(2) do |config|
     google.image_family = 'sos-development2404'
     google.zone = "europe-west3-a"
     google.machine_type = "${machineType}"
-    google.disk_type = "hyperdisk-balanced"
+    google.disk_type = "pd-ssd"
     # preemptible
     google.preemptible = true
     google.auto_restart = false
