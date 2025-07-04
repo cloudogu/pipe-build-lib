@@ -332,7 +332,7 @@ EOF
                 if (gitflow.isPreReleaseBranch()) {
                     script.sh "make prerelease_namespace"
                 }
-                ecoSystem.provision(doguDir)
+                ecoSystem.provision(doguDir, "c4-standard-8")
             }
 
             group.stage("Setup", PipelineMode.INTEGRATION) {
