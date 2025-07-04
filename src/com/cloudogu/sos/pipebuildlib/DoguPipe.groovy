@@ -648,7 +648,7 @@ EOF
             }
         }
     }
-
+    @NonCPS
     private List<String> normalizeShellScripts(def input) {
         if (!input) {
             return []
