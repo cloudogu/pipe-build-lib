@@ -57,7 +57,7 @@ class DoguPipe extends BasePipe {
         this.doguName               = config.doguName
         this.doguDir                = config.doguDirectory ?: '/dogu'
         this.backendUser            = config.backendUser ?: 'cesmarvin-setup'
-        this.shellScripts           = config.shellScripts ?: ''
+        this.shellScripts           = normalizeShellScripts(config.shellScripts).join(" ")
         this.updateSubmodules       = config.updateSubmodules ?: false
         this.runIntegrationTests    = config.runIntegrationTests ?: false
         this.doBatsTests            = config.doBatsTests ?: false
@@ -647,5 +647,24 @@ EOF
                 script.sh 'make update-makefiles'
             }
         }
+    }
+
+    private List<String> normalizeShellScripts(def input) {
+        if (!input) {
+            return []
+        }
+
+        if (input instanceof String) {
+            return input.trim().split(/\s+/) as List
+        }
+
+        if (input instanceof List) {
+            if (input.size() == 1 && input[0] instanceof String) {
+                return input[0].trim().split(/\s+/) as List
+            }
+            return input
+        }
+
+        throw new IllegalArgumentException("Unsupported shellScripts format: ${input.getClass()}")
     }
 }
