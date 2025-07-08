@@ -494,7 +494,7 @@ EOF
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: groovy.json.JsonOutput.toJson(message),
-                    url: webhookUrl
+                    url: script.env.webhookUrl
                 )
                 script.echo "Notification sent to Google Chat: ${response.status} ${response.content}"
             } catch (Exception notifyError) {
