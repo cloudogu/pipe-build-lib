@@ -77,7 +77,8 @@ class DoguPipe extends BasePipe {
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
-        
+        this.latestTag              = fetchLatestTagInNode(script, this.gitUserName)
+
         // Objects
         git = new Git(script, gitUserName)
         git.committerName = gitUserName
@@ -189,35 +190,6 @@ end
 
             group.stage("Checkout", PipelineMode.STATIC) {
                 checkout_updatemakefiles(updateSubmodules)
-            }
-
-            group.stage("Get latest tag", PipelineMode.STATIC) {
-                script.withCredentials([script.usernamePassword(
-                credentialsId: this.gitUserName,
-                usernameVariable: 'GIT_AUTH_USR',
-                passwordVariable: 'GIT_AUTH_PSW'
-                )]) {
-                    script.sh """
-                        git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
-                        git fetch origin +refs/heads/*:refs/remotes/origin/*
-                        git fetch --tags
-
-                        release_target=\$(if git show-ref --verify --quiet refs/remotes/origin/main; then
-                            echo main
-                        elif git show-ref --verify --quiet refs/remotes/origin/master; then
-                            echo master
-                        else
-                            exit 1
-                        fi)
-                        latestTag=\$(git describe --tags --abbrev=0)
-
-                        echo "\$release_target" > release_target.txt
-                        echo "\$latestTag" > latest_tag.txt
-                    """
-                    releaseVersion = git.getSimpleBranchName()
-                    releaseTargetBranch = script.readFile('release_target.txt').trim()
-                    this.latestTag = script.readFile('latest_tag.txt').trim()
-                }
             }
 
             group.stage("Lint", PipelineMode.STATIC) {
@@ -705,4 +677,27 @@ EOF
 
         throw new IllegalArgumentException("Unsupported shellScripts format: ${input.getClass()}")
     }
+
+    private static String fetchLatestTagInNode(def script, String gitUserName) {
+        String tag = "unknown"
+        script.node {
+            script.checkout script.scm
+            script.withCredentials([script.usernamePassword(
+                credentialsId: gitUserName,
+                usernameVariable: 'GIT_AUTH_USR',
+                passwordVariable: 'GIT_AUTH_PSW'
+            )]) {
+                tag = script.sh(
+                    script: """
+                        git config credential.helper '!f() { echo username=\$GIT_AUTH_USR'; echo password=\$GIT_AUTH_PSW'; }; f'
+                        git fetch --tags
+                        git tag --list 'v*' --sort=-v:refname | head -n 1
+                    """,
+                    returnStdout: true
+                ).trim()
+            }
+        }
+        return tag
+    }
+
 }
