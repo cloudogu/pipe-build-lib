@@ -538,7 +538,7 @@ EOF
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
         def defaultParams = []
-        def latest_tag = ""
+        String latest_tag = ""
         if (script.env.BRANCH_NAME == 'develop') {
             script.withCredentials([script.usernamePassword(
                 credentialsId: this.gitUserName,
@@ -557,6 +557,7 @@ EOF
                     else
                         exit 1
                     fi)
+                    latest_tag=\$(git describe --tags --abbrev=0)
 
                     echo "\$release_target" > release_target.txt
                     echo "\$latest_tag" > latest_tag.txt
