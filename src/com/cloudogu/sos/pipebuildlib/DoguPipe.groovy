@@ -537,6 +537,7 @@ EOF
 
     @Override
     void setBuildProperties(List<ParameterDefinition> customParams = null) {
+        setupEnvironment()
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
         def defaultParams = []
