@@ -77,7 +77,6 @@ class DoguPipe extends BasePipe {
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
-        this.latestTag              = fetchLatestTagInNode(script, this.gitUserName)
 
         // Objects
         git = new Git(script, gitUserName)
@@ -677,6 +676,10 @@ EOF
 
         throw new IllegalArgumentException("Unsupported shellScripts format: ${input.getClass()}")
     }
+
+    void setupEnvironment() {
+        this.latestTag = fetchLatestTagInNode(script, this.gitUserName)
+    }   
 
     private static String fetchLatestTagInNode(def script, String gitUserName) {
         String tag = "unknown"
