@@ -541,6 +541,8 @@ EOF
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
         def defaultParams = []
         if (script.env.BRANCH_NAME == 'develop') {
+
+node {
             script.withCredentials([script.usernamePassword(
                 credentialsId: this.gitUserName,
                 usernameVariable: 'GIT_AUTH_USR',
@@ -567,6 +569,7 @@ EOF
                 releaseTargetBranch = script.readFile('release_target.txt').trim()
                 this.latestTag = script.readFile('latest_tag.txt').trim()
             }
+}
 
             pipelineModeChoices << 'RELEASE'
             defaultParams = [
