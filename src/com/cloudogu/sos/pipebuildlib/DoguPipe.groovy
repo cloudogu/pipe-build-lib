@@ -692,10 +692,11 @@ EOF
             )]) {
                 tag = script.sh(
                     script: """
-                        git config credential.helper '!f() { echo username=\$GIT_AUTH_USR'; echo password=\$GIT_AUTH_PSW'; }; f'
-                        git fetch --tags
-                        git tag --list 'v*' --sort=-v:refname | head -n 1
+                    git config credential.helper '!f() { echo username=\\\$GIT_AUTH_USR; echo password=\\\$GIT_AUTH_PSW; }; f'
+                    git fetch --tags
+                    git tag --list 'v*' --sort=-v:refname | head -n 1
                     """,
+                    
                     returnStdout: true
                 ).trim()
             }
