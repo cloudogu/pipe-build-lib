@@ -581,7 +581,7 @@ EOF
                 script.string(
                     name: 'ReleaseTag',
                     defaultValue: '',
-                    description:"Only required if PipelineMode=RELEASE. Enter new release tag (latest: ${this.latest_tag})."
+                    description:"Only required if PipelineMode=RELEASE. Enter new release tag (latest: ${this.latestTag})."
                 ),
                 script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
                 script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
