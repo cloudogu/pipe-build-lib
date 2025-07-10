@@ -39,6 +39,8 @@ class DoguPipe extends BasePipe {
     String agentStatic
     String agentVagrant
     String releaseWebhookUrlSecret
+    String latestTag = ""
+
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
@@ -538,7 +540,6 @@ EOF
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
         def defaultParams = []
-        String latest_tag = ""
         if (script.env.BRANCH_NAME == 'develop') {
             script.withCredentials([script.usernamePassword(
                 credentialsId: this.gitUserName,
@@ -557,14 +558,14 @@ EOF
                     else
                         exit 1
                     fi)
-                    latest_tag=\$(git describe --tags --abbrev=0)
+                    latestTag=\$(git describe --tags --abbrev=0)
 
                     echo "\$release_target" > release_target.txt
-                    echo "\$latest_tag" > latest_tag.txt
+                    echo "\$latestTag" > latest_tag.txt
                 """
                 releaseVersion = git.getSimpleBranchName()
                 releaseTargetBranch = script.readFile('release_target.txt').trim()
-                latest_tag = script.readFile('latest_tag.txt').trim()
+                this.latestTag = script.readFile('latest_tag.txt').trim()
             }
 
             pipelineModeChoices << 'RELEASE'
