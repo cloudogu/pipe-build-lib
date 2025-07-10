@@ -42,7 +42,9 @@ class DoguPipe extends BasePipe {
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
+    final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'test']
 
+    String jenkinsUser
 
     DoguPipe(script, Map config) {
         super(script)
@@ -111,7 +113,7 @@ class DoguPipe extends BasePipe {
 
         // overriding vagrant configuration so that sos image is used and labels set
         ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = machineType ->
-        def jenkinsUser = ecoSystem.getJenkinsUser()
+        this.jenkinsUser = ecoSystem.getJenkinsUser()
         def pipelineName = ecoSystem.getPipelineName()
         script.writeFile file: 'Vagrantfile', text: """
 Vagrant.require_version ">= 1.9.0"
@@ -261,6 +263,10 @@ end
             }
 
         group.raw_stage('Make dogu Release', PipelineMode.RELEASE) {
+            if (!allowedReleaseUsers.contains(this.jenkinsUser)) {
+                script.error("User '${this.jenkinsUser}' is not authorized to run a release!")
+            }
+
             if (!script.params.ReleaseTag?.trim()) {
                 script.error("ReleaseTag must be provided in RELEASE mode!")
             }
