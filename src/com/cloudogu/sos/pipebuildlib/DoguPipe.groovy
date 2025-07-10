@@ -39,6 +39,8 @@ class DoguPipe extends BasePipe {
     String agentStatic
     String agentVagrant
     String releaseWebhookUrlSecret
+    String latestTag = ""
+
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
@@ -187,6 +189,35 @@ end
 
             group.stage("Checkout", PipelineMode.STATIC) {
                 checkout_updatemakefiles(updateSubmodules)
+            }
+
+            group.stage("Get latest tag", PipelineMode.STATIC) {
+                script.withCredentials([script.usernamePassword(
+                credentialsId: this.gitUserName,
+                usernameVariable: 'GIT_AUTH_USR',
+                passwordVariable: 'GIT_AUTH_PSW'
+                )]) {
+                    script.sh """
+                        git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
+                        git fetch origin +refs/heads/*:refs/remotes/origin/*
+                        git fetch --tags
+
+                        release_target=\$(if git show-ref --verify --quiet refs/remotes/origin/main; then
+                            echo main
+                        elif git show-ref --verify --quiet refs/remotes/origin/master; then
+                            echo master
+                        else
+                            exit 1
+                        fi)
+                        latestTag=\$(git describe --tags --abbrev=0)
+
+                        echo "\$release_target" > release_target.txt
+                        echo "\$latestTag" > latest_tag.txt
+                    """
+                    releaseVersion = git.getSimpleBranchName()
+                    releaseTargetBranch = script.readFile('release_target.txt').trim()
+                    this.latestTag = script.readFile('latest_tag.txt').trim()
+                }
             }
 
             group.stage("Lint", PipelineMode.STATIC) {
@@ -538,7 +569,6 @@ EOF
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
         def defaultParams = []
-
         if (script.env.BRANCH_NAME == 'develop') {
             pipelineModeChoices << 'RELEASE'
             defaultParams = [
@@ -551,7 +581,7 @@ EOF
                 script.string(
                     name: 'ReleaseTag',
                     defaultValue: '',
-                    description:"Only required if PipelineMode=RELEASE. Enter new release tag."
+                    description:"Only required if PipelineMode=RELEASE. Enter new release tag (latest: ${this.latest_tag})."
                 ),
                 script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
                 script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
