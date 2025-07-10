@@ -42,7 +42,7 @@ class DoguPipe extends BasePipe {
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
-    final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'test']
+    final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
 
     String jenkinsUser
 
