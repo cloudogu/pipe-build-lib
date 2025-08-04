@@ -11,6 +11,7 @@ class DoguPipe extends BasePipe {
     GitHub github
     Changelog changelog
     Vagrant vagrant
+    Markdown markdown
     Map config
 
     String doguName
@@ -56,7 +57,7 @@ class DoguPipe extends BasePipe {
         this.committerEmail         = config.committerEmail ?: "${this.gitUserName}@cloudogu.com"
         this.gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         this.sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
-        this.markdownVersion        = config.markdownVersion ?: "3.13.7"
+        this.markdownVersion        = config.markdownVersion ?: "3.11.0"
         this.agentStatic            = config.agentStatic ?: "sos"
         this.agentVagrant           = config.agentVagrant ?: "sos-stable"
         this.doguName               = config.doguName
@@ -170,20 +171,25 @@ end
         }
 
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
-    }
-
-    int checkMarkdownLinks() {
-        return new Docker(script).image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
-            .mountJenkinsUser()
-            .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
-                return script.sh(
-                    script: '''
-                        find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v
-                    ''',
-                    returnStatus: true
-                )
-            }
-    }
+        markdown = new Markdown(script, markdownVersion)
+        // markdown.metaClass.check = {
+        //     docker.image("ghcr.io/tcort/markdown-link-check:${this.tag}")
+        //         .mountJenkinsUser()
+        //         .inside("--entrypoint=\"\" -v ${this.script.env.WORKSPACE}/docs:/docs") {
+        //             this.script.sh '''
+        //                 echo '{
+        //                   "retry": {
+        //                     "retries": 3,
+        //                     "minTimeout": 1000
+        //                   },
+        //                   "timeout": 10000
+        //                 }' > /docs/tmp-config.json
+        
+        //                 find /docs -name \\*.md -print0 | \
+        //                 xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
+        //             '''
+        //         }
+        // }
 
     @Override
     void addDefaultStages() {
@@ -208,28 +214,9 @@ end
 
             if (config.checkMarkdown) {
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
-                    int maxRetries = 3
-                    int attempt = 1
-                    int exitCode = 1
-            
-                    while (attempt <= maxRetries && exitCode != 0) {
-                        script.echo "Attempt ${attempt} of ${maxRetries} to check markdown links..."
-                        exitCode = checkMarkdownLinks()
-                        if (exitCode != 0) {
-                            script.echo "Attempt ${attempt} failed with exit code ${exitCode}."
-                            if (attempt < maxRetries) {
-                                script.sleep time: 5, unit: 'SECONDS'
-                            }
-                        }
-                        attempt++
-                    }
-            
-                    if (exitCode != 0) {
-                        script.error("All ${maxRetries} attempts failed. Markdown link check exited with ${exitCode}.")
-                    }
+                    markdown.check()
                 }
             }
-
 
             if (shellScripts) {
                 group.stage("Shellcheck", PipelineMode.STATIC) {
