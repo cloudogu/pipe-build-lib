@@ -172,7 +172,24 @@ end
 
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
         markdown = new Markdown(script, markdownVersion)
-    }
+        markdown.metaClass.check = {
+            docker.image("ghcr.io/tcort/markdown-link-check:${this.tag}")
+                .mountJenkinsUser()
+                .inside("--entrypoint=\"\" -v ${this.script.env.WORKSPACE}/docs:/docs") {
+                    this.script.sh '''
+                        echo '{
+                          "retry": {
+                            "retries": 3,
+                            "minTimeout": 1000
+                          },
+                          "timeout": 10000
+                        }' > /docs/tmp-config.json
+        
+                        find /docs -name \\*.md -print0 | \
+                        xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
+                    '''
+                }
+        }
 
     @Override
     void addDefaultStages() {
