@@ -173,10 +173,10 @@ end
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
         markdown = new Markdown(script, markdownVersion)
         markdown.metaClass.check = {
-            docker.image("ghcr.io/tcort/markdown-link-check:${this.tag}")
+            docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
                 .mountJenkinsUser()
-                .inside("--entrypoint=\"\" -v ${this.script.env.WORKSPACE}/docs:/docs") {
-                    this.script.sh '''
+                .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
+                    script.sh '''
                         echo '{
                           "retry": {
                             "retries": 3,
