@@ -56,7 +56,7 @@ class DoguPipe extends BasePipe {
         this.committerEmail         = config.committerEmail ?: "${this.gitUserName}@cloudogu.com"
         this.gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         this.sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
-        this.markdownVersion        = config.markdownVersion ?: "3.11.0"
+        this.markdownVersion        = config.markdownVersion ?: "3.13.7"
         this.agentStatic            = config.agentStatic ?: "sos"
         this.agentVagrant           = config.agentVagrant ?: "sos-stable"
         this.doguName               = config.doguName
