@@ -172,13 +172,14 @@ end
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
     }
 
-    void checkMarkdownLinks() {
-        new Docker(script).image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
+    int checkMarkdownLinks() {
+        return new Docker(script).image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
                     find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v
-                '''
+                ''',
+                returnStatus: true
             }
     }
 
@@ -207,25 +208,26 @@ end
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
                     int maxRetries = 3
                     int attempt = 1
-                    boolean success = false
+                    int exitCode = 1
             
-                    while (attempt <= maxRetries && !success) {
-                        try {
-                            script.echo "Attempt ${attempt} of ${maxRetries} to check markdown links..."
-                            checkMarkdownLinks()
-                            success = true
-                        } catch (Exception e) {
-                            script.echo "Attempt ${attempt} failed: ${e.getMessage()}"
-                            if (attempt == maxRetries) {
-                                script.error("All ${maxRetries} attempts failed. Giving up.")
-                            } else {
+                    while (attempt <= maxRetries && exitCode != 0) {
+                        script.echo "Attempt ${attempt} of ${maxRetries} to check markdown links..."
+                        exitCode = checkMarkdownLinks()
+                        if (exitCode != 0) {
+                            script.echo "Attempt ${attempt} failed with exit code ${exitCode}."
+                            if (attempt < maxRetries) {
                                 script.sleep time: 5, unit: 'SECONDS'
                             }
-                            attempt++
                         }
+                        attempt++
+                    }
+            
+                    if (exitCode != 0) {
+                        script.error("All ${maxRetries} attempts failed. Markdown link check exited with ${exitCode}.")
                     }
                 }
             }
+
 
             if (shellScripts) {
                 group.stage("Shellcheck", PipelineMode.STATIC) {
