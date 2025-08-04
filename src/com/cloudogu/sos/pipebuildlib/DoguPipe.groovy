@@ -11,7 +11,6 @@ class DoguPipe extends BasePipe {
     GitHub github
     Changelog changelog
     Vagrant vagrant
-    Markdown markdown
     Map config
 
     String doguName
@@ -171,26 +170,27 @@ end
         }
 
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
-        markdown = new Markdown(script, markdownVersion)
-        markdown.metaClass.checkWithRetry = {
-            markdown.docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
-                .mountJenkinsUser()
-                .inside("--entrypoint=\"\" -v ${markdown.script.env.WORKSPACE}/docs:/docs") {
-                    markdown.script.sh '''
-                        echo '{
-                          "retry": {
-                            "retries": 3,
-                            "minTimeout": 1000
-                          },
-                          "timeout": 10000
-                        }' > /docs/tmp-config.json
-        
-                        find /docs -name \\*.md -print0 | \
-                        xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
-                    '''
-                }
+    }
+
+    void checkMarkdownLinks() {
+        docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
+            .mountJenkinsUser()
+            .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
+                script.sh '''
+                    echo '{
+                      "retry": {
+                        "retries": 3,
+                        "minTimeout": 1000
+                      },
+                      "timeout": 10000
+                    }' > /docs/tmp-config.json
+    
+                    find /docs -name \\*.md -print0 | \
+                    xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
+                '''
             }
     }
+
 
     @Override
     void addDefaultStages() {
@@ -215,7 +215,7 @@ end
 
             if (config.checkMarkdown) {
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
-                    markdown.checkWithRetry()
+                    checkMarkdownLinks()
                 }
             }
 
