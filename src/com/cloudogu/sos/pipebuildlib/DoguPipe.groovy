@@ -176,10 +176,12 @@ end
         return new Docker(script).image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
-                return script.sh '''
-                    find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v
-                ''',
-                returnStatus: true
+                return script.sh(
+                    script: '''
+                        find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v
+                    ''',
+                    returnStatus: true
+                )
             }
     }
 
