@@ -190,6 +190,7 @@ end
         //             '''
         //         }
         // }
+    }
 
     @Override
     void addDefaultStages() {
