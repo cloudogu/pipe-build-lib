@@ -177,19 +177,8 @@ end
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
-                  echo 'Running markdown link check with retries...'
-                  echo '{
-                    "retry": {
-                      "retries": 3,
-                      "minTimeout": 1000
-                    },
-                    "timeout": 10000
-                  }' > /docs/tmp-config.json
-                
-                  find /docs -name \\*.md -print0 | while IFS= read -r -d '' file; do
-                    echo "Checking $file"
-                    markdown-link-check -v -c /docs/tmp-config.json "$file"
-                  done
+                  find /docs -name \\*.md -print0 | \
+                  xargs -0 -n1 -I {} markdown-link-check -v --retry 3 --retry-after 1000 {}
                 '''
             }
     }
