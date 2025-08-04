@@ -181,9 +181,9 @@ end
                     "timeout": 10000,
                     "retryOn429": true,
                     "retryCount": 3,
-                    "fallbackRetryDelay": "5s"
+                    "fallbackRetryDelay": 5000
                   }' > /docs/retry-config.json
-    
+                
                   find /docs -name \\*.md -print0 | \
                   xargs -0 -n1 -I {} markdown-link-check -v -c /docs/retry-config.json {}
                 '''
