@@ -177,15 +177,7 @@ end
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
-                  echo '{
-                    "timeout": 10000,
-                    "retryOn429": true,
-                    "retryCount": 3,
-                    "fallbackRetryDelay": 5000
-                  }' > /docs/retry-config.json
-                
-                  find /docs -name \\*.md -print0 | \
-                  xargs -0 -n1 -I {} markdown-link-check -v -c /docs/retry-config.json {}
+                    'find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v'
                 '''
             }
     }
@@ -213,7 +205,25 @@ end
 
             if (config.checkMarkdown) {
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
-                    checkMarkdownLinks()
+                    int maxRetries = 3
+                    int attempt = 1
+                    boolean success = false
+            
+                    while (attempt <= maxRetries && !success) {
+                        try {
+                            script.echo "Attempt ${attempt} of ${maxRetries} to check markdown links..."
+                            checkMarkdownLinks()
+                            success = true
+                        } catch (Exception e) {
+                            script.echo "Attempt ${attempt} failed: ${e.getMessage()}"
+                            if (attempt == maxRetries) {
+                                script.error("All ${maxRetries} attempts failed. Giving up.")
+                            } else {
+                                script.sleep time: 5, unit: 'SECONDS'
+                            }
+                            attempt++
+                        }
+                    }
                 }
             }
 
