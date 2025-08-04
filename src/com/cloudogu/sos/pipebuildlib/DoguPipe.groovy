@@ -177,7 +177,7 @@ end
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
-                    'find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v'
+                    find /docs -name \\*.md -print0 | xargs -0 -n1 markdown-link-check -v
                 '''
             }
     }
