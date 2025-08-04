@@ -189,7 +189,8 @@ end
                         xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
                     '''
                 }
-        }
+            }
+    }
 
     @Override
     void addDefaultStages() {
