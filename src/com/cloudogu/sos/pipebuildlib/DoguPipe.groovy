@@ -172,7 +172,7 @@ end
 
         vagrant = new Vagrant(script, gcloudCredentials, sshCredentials)
         markdown = new Markdown(script, markdownVersion)
-        markdown.metaClass.check = {
+        markdown.metaClass.checkWithRetry = {
             docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
                 .mountJenkinsUser()
                 .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
@@ -215,7 +215,7 @@ end
 
             if (config.checkMarkdown) {
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
-                    markdown.check()
+                    markdown.checkWithRetry()
                 }
             }
 
