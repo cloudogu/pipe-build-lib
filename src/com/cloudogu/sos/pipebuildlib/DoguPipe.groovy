@@ -175,7 +175,7 @@ end
         markdown.metaClass.checkWithRetry = {
             markdown.docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
                 .mountJenkinsUser()
-                .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
+                .inside("--entrypoint=\"\" -v ${markdown.script.env.WORKSPACE}/docs:/docs") {
                     markdown.script.sh '''
                         echo '{
                           "retry": {
