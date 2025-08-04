@@ -177,12 +177,18 @@ end
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
+                  echo '{
+                    "timeout": 10000,
+                    "retryOn429": true,
+                    "retryCount": 3,
+                    "fallbackRetryDelay": "5s"
+                  }' > /docs/retry-config.json
+    
                   find /docs -name \\*.md -print0 | \
-                  xargs -0 -n1 -I {} markdown-link-check -v --retry 3 {}
+                  xargs -0 -n1 -I {} markdown-link-check -v -c /docs/retry-config.json {}
                 '''
             }
     }
-
 
     @Override
     void addDefaultStages() {
