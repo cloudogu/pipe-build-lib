@@ -178,7 +178,7 @@ end
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
                   find /docs -name \\*.md -print0 | \
-                  xargs -0 -n1 -I {} markdown-link-check -v --retry 3 --retry-after 1000 {}
+                  xargs -0 -n1 -I {} markdown-link-check -v --retry 3 {}
                 '''
             }
     }
