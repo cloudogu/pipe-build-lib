@@ -173,7 +173,7 @@ end
     }
 
     void checkMarkdownLinks() {
-        docker.image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
+        new Docker(script).image("ghcr.io/tcort/markdown-link-check:${markdownVersion}")
             .mountJenkinsUser()
             .inside("--entrypoint=\"\" -v ${script.env.WORKSPACE}/docs:/docs") {
                 script.sh '''
