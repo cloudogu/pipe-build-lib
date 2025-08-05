@@ -9,6 +9,7 @@ class DoguPipe extends BasePipe {
     Git git
     GitFlow gitflow
     GitHub github
+    Docker docker
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
@@ -85,6 +86,7 @@ class DoguPipe extends BasePipe {
         git.committerEmail = committerEmail
         gitflow = new GitFlow(script, git)
         github = new GitHub(script, git)
+        docker = new Docker(script)
         changelog = new Changelog(script)
         script.echo "[INFO] Init ecosystem object"
 
