@@ -704,39 +704,40 @@ EOF
         this.latestTag = fetchLatestTagInNode(script, this.gitUserName, this.doguName)
     }   
 
-private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
-    String tag = "unknown"
-
-    script.node {
-        // Inject credentials (from Jenkins credentials store)
-        script.withCredentials([script.usernamePassword(
-            credentialsId: gitUserName,
-            usernameVariable: 'GIT_AUTH_USR',
-            passwordVariable: 'GIT_AUTH_PSW'
-        )]) {
-            // Optional: clean previous clone
-            script.sh "rm -rf repo && mkdir repo"
-
-            script.dir('repo') {
-                // Replace with your actual GitHub URL if needed
-                String repoUrl = "https://github.com/cloudogu/${doguName}.git"
-
-                // Configure credentials and clone repo
-                script.sh """
-                    git config --global credential.helper '!f() { echo username=\\\$GIT_AUTH_USR; echo password=\\\$GIT_AUTH_PSW; }; f'
-                    git clone ${repoUrl} .
-                    git fetch --tags
-                """
-
-                // Get latest tag matching 'v*'
-                tag = script.sh(
-                    script: "git tag --list 'v*' --sort=-v:refname | head -n 1",
-                    returnStdout: true
-                ).trim()
+    private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
+        String tag = "unknown"
+    
+        script.node {
+            // Inject credentials (from Jenkins credentials store)
+            script.withCredentials([script.usernamePassword(
+                credentialsId: gitUserName,
+                usernameVariable: 'GIT_AUTH_USR',
+                passwordVariable: 'GIT_AUTH_PSW'
+            )]) {
+                // Optional: clean previous clone
+                script.sh "rm -rf repo && mkdir repo"
+    
+                script.dir('repo') {
+                    // Replace with your actual GitHub URL if needed
+                    String repoUrl = "https://github.com/cloudogu/${doguName}.git"
+    
+                    // Configure credentials and clone repo
+                    script.sh """
+                        git config --global credential.helper '!f() { echo username=\\\$GIT_AUTH_USR; echo password=\\\$GIT_AUTH_PSW; }; f'
+                        git clone ${repoUrl} .
+                        git fetch --tags
+                    """
+    
+                    // Get latest tag matching 'v*'
+                    tag = script.sh(
+                        script: "git tag --list 'v*' --sort=-v:refname | head -n 1",
+                        returnStdout: true
+                    ).trim()
+                }
             }
         }
+    
+        return tag
     }
-
-    return tag
 
 }
