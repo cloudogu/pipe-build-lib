@@ -708,27 +708,19 @@ EOF
         String tag = "unknown"
     
         script.node {
-            // Inject credentials (from Jenkins credentials store)
             script.withCredentials([script.usernamePassword(
                 credentialsId: gitUserName,
                 usernameVariable: 'GIT_AUTH_USR',
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
-                // Optional: clean previous clone
                 script.sh "rm -rf repo && mkdir repo"
     
                 script.dir('repo') {
-                    // Replace with your actual GitHub URL if needed
-                    String repoUrl = "https://${GIT_AUTH_USR}:${GIT_AUTH_PSW}@github.com/cloudogu/${doguName}.git"
-                    
-                    // Configure credentials and clone repo
                     script.sh """
-                        git config --global credential.helper '!f() { echo username=\\\$GIT_AUTH_USR; echo password=\\\$GIT_AUTH_PSW; }; f'
-                        git clone ${repoUrl} .
+                        git clone https://${'$'}GIT_AUTH_USR:${'$'}GIT_AUTH_PSW@github.com/cloudogu/${doguName}.git .
                         git fetch --tags
                     """
     
-                    // Get latest tag matching 'v*'
                     tag = script.sh(
                         script: "git tag --list 'v*' --sort=-v:refname | head -n 1",
                         returnStdout: true
