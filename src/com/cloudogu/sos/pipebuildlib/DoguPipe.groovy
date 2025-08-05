@@ -719,8 +719,8 @@ EOF
     
                 script.dir('repo') {
                     // Replace with your actual GitHub URL if needed
-                    String repoUrl = "https://github.com/cloudogu/${doguName}.git"
-    
+                    String repoUrl = "https://${GIT_AUTH_USR}:${GIT_AUTH_PSW}@github.com/cloudogu/${doguName}.git"
+                    
                     // Configure credentials and clone repo
                     script.sh """
                         git config --global credential.helper '!f() { echo username=\\\$GIT_AUTH_USR; echo password=\\\$GIT_AUTH_PSW; }; f'
