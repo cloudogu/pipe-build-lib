@@ -43,7 +43,7 @@ class DoguPipe extends BasePipe {
     String latestTag = ""
 
 
-    final String githubId = 'cesmarvin_pat'
+    final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
 
@@ -54,7 +54,7 @@ class DoguPipe extends BasePipe {
         this.config = config
 
         // config map vars
-        this.gitUserName            = 'cesmarvin_pat'
+        this.gitUserName            = config.gitUser ?: this.githubId
         this.committerEmail         = config.committerEmail ?: "${this.gitUserName}@cloudogu.com"
         this.gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         this.sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
