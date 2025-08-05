@@ -42,7 +42,7 @@ class DoguPipe extends BasePipe {
     String latestTag = ""
 
 
-    final String githubId = 'cesmarvin'
+    final String githubId = 'cesmarvin_pat'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
 
