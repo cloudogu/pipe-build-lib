@@ -79,13 +79,17 @@ class DoguPipe extends BasePipe {
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
 
         // Objects
+        script.echo "[INFO] Authenticate git with ${gitUserName}"
         git = new Git(script, gitUserName)
         git.committerName = gitUserName
         git.committerEmail = committerEmail
         gitflow = new GitFlow(script, git)
         github = new GitHub(script, git)
         changelog = new Changelog(script)
+        script.echo "[INFO] Init ecosystem object"
+
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
+        script.echo "[INFO] ecosystem object initialized"
 
         // Inject helper: sanitizeForLabel
         ecoSystem.metaClass.sanitizeForLabel = { String input ->
