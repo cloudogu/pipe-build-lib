@@ -53,7 +53,7 @@ class DoguPipe extends BasePipe {
         this.config = config
 
         // config map vars
-        this.gitUserName            = config.gitUser ?: this.githubId
+        this.gitUserName            = 'cesmarvin_pat'
         this.committerEmail         = config.committerEmail ?: "${this.gitUserName}@cloudogu.com"
         this.gcloudCredentials      = config.gcloudCredentials ?: 'gcloud-ces-operations-internal-packer'
         this.sshCredentials         = config.sshCredentials ?: 'jenkins-gcloud-ces-operations-internal'
