@@ -221,7 +221,17 @@ end
 
             if (config.checkMarkdown) {
                 group.stage('Check Markdown Links', PipelineMode.STATIC) {
-                    markdown.check()
+                    try {
+                        markdown.check()
+                    } catch (Exception firstFailure) {
+                        script.echo "[WARN] Markdown check failed. Retrying in 5 seconds..."
+                        script.sleep 5
+                        try {
+                            markdown.check()
+                        } catch (Exception secondFailure) {
+                            script.error "[ERROR] Markdown check failed after retry: ${secondFailure.message}"
+                        }
+                    }
                 }
             }
 
