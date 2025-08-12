@@ -467,7 +467,6 @@ EOF
 
             group.stage("Trivy scan", PipelineMode.INTEGRATION) {
                 ecoSystem.copyDoguImageToJenkinsWorker(doguDir)
-                Trivy trivy = new Trivy(script)
                 trivy.scanDogu(".", script.params.TrivySeverityLevels, script.params.TrivyStrategy)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.TABLE)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.JSON)
