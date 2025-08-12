@@ -135,6 +135,8 @@ class DoguPipe extends BasePipe {
                 String trivyReportFile = "trivy/trivyReport.json" ->
                 
                 script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
+                String script_str = "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} -o ${trivyReportFile} --severity ${severityLevel} ${additionalFlags} ${imageName}"
+                script.echo "[DEBUG] script_str: ${script_str}"
                 Integer exitCode = docker.image("${trivyImage}:${trivyVersion}") 
                 .mountJenkinsUser()
                 .mountDockerSocket()
@@ -142,7 +144,7 @@ class DoguPipe extends BasePipe {
                     // Write result to $trivyReportFile in json format (--format json), which can be converted in the saveFormattedTrivyReport function
                     // Exit with exit code 10 if vulnerabilities are found or OS is so old that Trivy has no records for it anymore
                     script.sh("mkdir -p " + trivyDirectory)
-                    script.sh(script: "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} -o ${trivyReportFile} --severity ${severityLevel} ${additionalFlags} ${imageName}", returnStatus: true)
+                    script.sh(script: script_str, returnStatus: true)
                 }
                     switch (exitCode) {
                         case 0:
