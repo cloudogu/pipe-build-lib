@@ -126,6 +126,8 @@ class DoguPipe extends BasePipe {
         }
 
         script.echo "[DEBUG] checkEOL= ${checkEOL}"
+        script.echo "[DEBUG] config.checkEOL= ${config.checkEOL}"
+        script.echo "[DEBUG] this.checkEOL= ${this.checkEOL}"
         if (!checkEOL) {
             trivy.metaClass.scanImage = {
                 String imageName,
