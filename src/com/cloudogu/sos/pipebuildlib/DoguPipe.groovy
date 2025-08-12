@@ -431,6 +431,9 @@ EOF
                         String trivyReportFile = "trivy/trivyReport.json" ->
                         
                         script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
+                        String trivyVersion = "0.57.1"
+                        String trivyImage = "aquasec/trivy"
+                        String trivyDirectory = "trivy"                       
                         String script_str = "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} -o ${trivyReportFile} --severity ${severityLevel} ${additionalFlags} ${imageName}"
                         script.echo "[DEBUG] script_str: ${script_str}"
                         Integer exitCode = docker.image("${trivyImage}:${trivyVersion}") 
