@@ -80,7 +80,7 @@ class DoguPipe extends BasePipe {
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
-        this.checkEOL               = config.checkEOL ?: false
+        this.checkEOL               = config.checkEOL ?: true
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
@@ -125,7 +125,8 @@ class DoguPipe extends BasePipe {
             return ecoSystem.sanitizeForLabel(jobName)
         }
 
-        if (checkEOL) {
+        if (!checkEOL) {
+            script.echo "[DEBUG] checkEOL= ${checkEOL}"
             trivy.metaClass.scanImage = {
                 String imageName,
                 String severityLevel = TrivySeverityLevel.CRITICAL,
