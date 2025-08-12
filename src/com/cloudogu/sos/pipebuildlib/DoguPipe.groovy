@@ -14,6 +14,7 @@ class DoguPipe extends BasePipe {
     Vagrant vagrant
     Markdown markdown
     Map config
+    Trivy trivy
 
     String doguName
     String doguDir
@@ -22,6 +23,7 @@ class DoguPipe extends BasePipe {
     boolean updateSubmodules
     boolean runIntegrationTests
     boolean doBatsTests
+    boolean checkEOL
     String registryConfig
     String registryConfigE
     String additionalDependencies
@@ -78,6 +80,7 @@ class DoguPipe extends BasePipe {
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
+        this.checkEOL               = config.checkEOL ?: false
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
@@ -88,6 +91,8 @@ class DoguPipe extends BasePipe {
         github = new GitHub(script, git)
         docker = new Docker(script)
         changelog = new Changelog(script)
+        trivy = new Trivy(script)
+
         script.echo "[INFO] Init ecosystem object"
 
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
@@ -119,6 +124,51 @@ class DoguPipe extends BasePipe {
             def jobName = script.env.JOB_NAME ?: "unknown"
             return ecoSystem.sanitizeForLabel(jobName)
         }
+
+        if (checkEOL) {
+            trivy.metaClass.scanImage = {
+                String imageName,
+                String severityLevel = TrivySeverityLevel.CRITICAL,
+                String strategy = TrivyScanStrategy.UNSTABLE,
+                // Avoid rate limits of default Trivy database source
+                String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db",
+                String trivyReportFile = "trivy/trivyReport.json" ->
+              
+                Integer exitCode = docker.image("${trivyImage}:${trivyVersion}") 
+                .mountJenkinsUser()
+                .mountDockerSocket()
+                .inside("-v ${script.env.WORKSPACE}/.trivy/.cache:/root/.cache/") {
+                    // Write result to $trivyReportFile in json format (--format json), which can be converted in the saveFormattedTrivyReport function
+                    // Exit with exit code 10 if vulnerabilities are found or OS is so old that Trivy has no records for it anymore
+                    script.sh("mkdir -p " + trivyDirectory)
+                    script.sh(script: "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} -o ${trivyReportFile} --severity ${severityLevel} ${additionalFlags} ${imageName}", returnStatus: true)
+                }
+                    switch (exitCode) {
+                        case 0:
+                            // Everything all right, no vulnerabilities
+                            return true
+                        case 10:
+                            // Found vulnerabilities
+                            // Set build status according to strategy
+                            switch (strategy) {
+                                case TrivyScanStrategy.IGNORE:
+                                    break
+                                case TrivyScanStrategy.UNSTABLE:
+                                    script.archiveArtifacts artifacts: "${trivyReportFile}", allowEmptyArchive: true
+                                    script.unstable("Trivy has found vulnerabilities in image " + imageName + ". See " + trivyReportFile)
+                                    break
+                                case TrivyScanStrategy.FAIL:
+                                    script.archiveArtifacts artifacts: "${trivyReportFile}", allowEmptyArchive: true
+                                    script.error("Trivy has found vulnerabilities in image " + imageName + ". See " + trivyReportFile)
+                                    break
+                            }
+                            return false
+                        default:
+                            script.error("Error during trivy scan; exit code: " + exitCode)
+                    }
+            }
+        }
+        
 
         // overriding vagrant configuration so that sos image is used and labels set
         ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = machineType ->
