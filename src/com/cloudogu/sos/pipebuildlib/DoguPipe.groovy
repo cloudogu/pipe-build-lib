@@ -127,14 +127,14 @@ class DoguPipe extends BasePipe {
 
         if (checkEOL) {
             trivy.metaClass.scanImage = {
-                "[DEBUG] trivy.metaClass.scanImage overwritten!"
                 String imageName,
                 String severityLevel = TrivySeverityLevel.CRITICAL,
                 String strategy = TrivyScanStrategy.UNSTABLE,
                 // Avoid rate limits of default Trivy database source
                 String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db",
                 String trivyReportFile = "trivy/trivyReport.json" ->
-              
+                
+                script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
                 Integer exitCode = docker.image("${trivyImage}:${trivyVersion}") 
                 .mountJenkinsUser()
                 .mountDockerSocket()
