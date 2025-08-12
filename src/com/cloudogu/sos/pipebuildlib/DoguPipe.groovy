@@ -127,6 +127,7 @@ class DoguPipe extends BasePipe {
 
         if (checkEOL) {
             trivy.metaClass.scanImage = {
+                "[DEBUG] trivy.metaClass.scanImage overwritten!"
                 String imageName,
                 String severityLevel = TrivySeverityLevel.CRITICAL,
                 String strategy = TrivyScanStrategy.UNSTABLE,
