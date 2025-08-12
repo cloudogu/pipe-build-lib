@@ -125,8 +125,8 @@ class DoguPipe extends BasePipe {
             return ecoSystem.sanitizeForLabel(jobName)
         }
 
+        script.echo "[DEBUG] checkEOL= ${checkEOL}"
         if (!checkEOL) {
-            script.echo "[DEBUG] checkEOL= ${checkEOL}"
             trivy.metaClass.scanImage = {
                 String imageName,
                 String severityLevel = TrivySeverityLevel.CRITICAL,
