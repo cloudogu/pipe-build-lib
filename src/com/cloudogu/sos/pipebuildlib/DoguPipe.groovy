@@ -47,7 +47,7 @@ class DoguPipe extends BasePipe {
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
-
+    final String shellcheckImage = "koalaman/shellcheck-alpine:v0.11.0"
     String jenkinsUser
 
     DoguPipe(script, Map config) {
@@ -123,6 +123,25 @@ class DoguPipe extends BasePipe {
             return ecoSystem.sanitizeForLabel(jobName)
         }
 
+        // This will override the global var `shellCheck` behavior
+        shellCheck.metaClass.call = { fileList ->
+            script.echo "[INFO] shellCheck call overwritten to use $shellcheckImage"
+            docker.image(shellcheckImage).inside {
+                sh "/bin/shellcheck ${fileList}"
+            }
+        }
+        
+        // and if you also want to override the no-arg call()
+        shellCheck.metaClass.call = { ->
+            def fileList = sh(
+                script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
+                returnStdout: true
+            )
+            fileList = '"' + fileList.trim().replaceAll('\n','" "') + '"'
+            docker.image('koalaman/shellcheck-alpine:v0.11.0').inside {
+                sh "/bin/shellcheck ${fileList}"
+            }
+        }
         
 
         // overriding vagrant configuration so that sos image is used and labels set
