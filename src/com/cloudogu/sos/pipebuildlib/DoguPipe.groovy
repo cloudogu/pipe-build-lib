@@ -47,7 +47,7 @@ class DoguPipe extends BasePipe {
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
-    final String shellcheckImage = "koalaman/shellcheck-alpine:v0.11.0"
+    final String shellcheckImage = "koalaman/shellcheck-alpine:v0.10.0"
     String jenkinsUser
 
     DoguPipe(script, Map config) {
