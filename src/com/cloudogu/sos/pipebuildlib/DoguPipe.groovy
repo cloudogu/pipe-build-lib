@@ -254,7 +254,7 @@ end
                             runWith(args[0] as String)
                         } else {
                             // no-arg form: shellCheck()
-                            def out = sh(
+                            def out = script.sh(
                                 script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
                                 returnStdout: true
                             ).trim()
