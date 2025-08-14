@@ -250,6 +250,8 @@ end
                         }
             
                         if (args && args[0]) {
+                            script.echo "[INFO] args ${args}"
+
                             // one-arg form
                             runWith(args[0] as String)
                         } else {
