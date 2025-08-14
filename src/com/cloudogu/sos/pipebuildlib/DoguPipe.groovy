@@ -124,25 +124,32 @@ class DoguPipe extends BasePipe {
         }
 
         // This will override the global var `shellCheck` behavior
-        script.shellCheck.metaClass.call = { fileList ->
-            script.echo "[INFO] shellCheck call overwritten to use $shellcheckImage"
-            docker.image(shellcheckImage).inside {
-                sh "/bin/shellcheck ${fileList}"
+        script.metaClass.shellCheck = { Object... args ->
+            def runWith = { String files ->
+                script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
+                // Use Jenkins' docker global, not your custom Docker wrapper
+                script.docker.image(shellcheckImage).inside {
+                    script.sh "/bin/shellcheck ${files}"
+                }
+            }
+        
+            if (args && args[0]) {
+                // one-arg form: shellCheck("a.sh b.sh")
+                runWith(args[0] as String)
+            } else {
+                // no-arg form: shellCheck()
+                def out = script.sh(
+                    script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
+                    returnStdout: true
+                ).trim()
+                if (!out) {
+                    script.echo "[INFO] No .sh files found; skipping shellcheck."
+                    return
+                }
+                def fileList = '"' + out.replaceAll('\n','" "') + '"'
+                runWith(fileList)
             }
         }
-        
-        // and if you also want to override the no-arg call()
-        script.shellCheck.metaClass.call = { ->
-            def fileList = sh(
-                script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
-                returnStdout: true
-            )
-            fileList = '"' + fileList.trim().replaceAll('\n','" "') + '"'
-            docker.image('koalaman/shellcheck-alpine:v0.11.0').inside {
-                sh "/bin/shellcheck ${fileList}"
-            }
-        }
-        
 
         // overriding vagrant configuration so that sos image is used and labels set
         ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = machineType ->
