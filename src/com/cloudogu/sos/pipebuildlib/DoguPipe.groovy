@@ -243,6 +243,7 @@ end
                     def shellCheck = { Object... args ->
                         def runWith = { String files ->
                             script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
+                            script.echo "[INFO] Shellcheck Files ${files}"
                             script.docker.image(shellcheckImage).inside {
                                 script.sh "/bin/shellcheck ${files}"
                             }
@@ -262,6 +263,8 @@ end
                                 return
                             }
                             def fileList = '"' + out.replaceAll('\n','" "') + '"'
+                            script.echo "[INFO] fileList ${fileList}."
+
                             runWith(fileList)
                         }
                     }
