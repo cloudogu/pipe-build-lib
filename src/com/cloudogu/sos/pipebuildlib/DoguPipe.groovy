@@ -237,23 +237,22 @@ end
                     }
                 }
             }
-
+            
             if (shellScripts) {
                 group.stage("Shellcheck", PipelineMode.STATIC) {
                     def shellCheck = { Object... args ->
                         def runWith = { String files ->
-                            script.echo "[INFO] Overwridden shellCheck using ${shellcheckImage}"
-                            // Use Jenkins' docker global, not your custom Docker wrapper
-                            docker.image(shellcheckImage).inside(){
-                                sh "/bin/shellcheck ${files}"
+                            script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
+                            script.docker.image(shellcheckImage).inside {
+                                script.sh "/bin/shellcheck ${files}"
                             }
                         }
-                    
+            
                         if (args && args[0]) {
-                            // one-arg form: shellCheck("a.sh b.sh")
+                            // one-arg form
                             runWith(args[0] as String)
                         } else {
-                            // no-arg form: shellCheck()
+                            // no-arg form
                             def out = script.sh(
                                 script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
                                 returnStdout: true
@@ -266,7 +265,7 @@ end
                             runWith(fileList)
                         }
                     }
-                    
+            
                     shellCheck(shellScripts)
                 }
             }
