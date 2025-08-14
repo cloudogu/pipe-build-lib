@@ -128,8 +128,8 @@ class DoguPipe extends BasePipe {
             def runWith = { String files ->
                 script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
                 // Use Jenkins' docker global, not your custom Docker wrapper
-                script.docker.image(shellcheckImage).inside {
-                    script.sh "/bin/shellcheck ${files}"
+                docker.image(shellcheckImage).inside {
+                    sh "/bin/shellcheck ${files}"
                 }
             }
         
@@ -138,7 +138,7 @@ class DoguPipe extends BasePipe {
                 runWith(args[0] as String)
             } else {
                 // no-arg form: shellCheck()
-                def out = script.sh(
+                def out = sh(
                     script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
                     returnStdout: true
                 ).trim()
