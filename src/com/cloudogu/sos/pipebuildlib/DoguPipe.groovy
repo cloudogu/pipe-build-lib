@@ -126,9 +126,9 @@ class DoguPipe extends BasePipe {
         // This will override the global var `shellCheck` behavior
         script.metaClass.shellCheck = { Object... args ->
             def runWith = { String files ->
-                script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
+                script.echo "[INFO] Overwridden shellCheck using ${shellcheckImage}"
                 // Use Jenkins' docker global, not your custom Docker wrapper
-                docker.image(shellcheckImage).inside(){
+                script.docker.image(shellcheckImage).inside(){
                     sh "/bin/shellcheck ${files}"
                 }
             }
