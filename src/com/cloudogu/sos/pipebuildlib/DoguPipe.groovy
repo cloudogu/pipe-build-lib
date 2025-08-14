@@ -124,7 +124,7 @@ class DoguPipe extends BasePipe {
         }
 
         // This will override the global var `shellCheck` behavior
-        shellCheck.metaClass.call = { fileList ->
+        script.shellCheck.metaClass.call = { fileList ->
             script.echo "[INFO] shellCheck call overwritten to use $shellcheckImage"
             docker.image(shellcheckImage).inside {
                 sh "/bin/shellcheck ${fileList}"
@@ -132,7 +132,7 @@ class DoguPipe extends BasePipe {
         }
         
         // and if you also want to override the no-arg call()
-        shellCheck.metaClass.call = { ->
+        script.shellCheck.metaClass.call = { ->
             def fileList = sh(
                 script: 'find . -path ./ecosystem -prune -o -type f -regex .*\\.sh -print',
                 returnStdout: true
