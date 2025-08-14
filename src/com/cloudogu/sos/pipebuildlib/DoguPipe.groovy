@@ -253,7 +253,7 @@ end
                             script.echo "[INFO] args ${args}"
 
                             // one-arg form
-                            runWith(args[0] as String)
+                            runWith(args)
                         } else {
                             // no-arg form
                             def out = script.sh(
