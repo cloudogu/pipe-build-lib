@@ -218,7 +218,7 @@ end
         String releaseVersion = ""
         String developmentBranch = "develop"
 
-        script.echo "[INFO] ${script.env.BRANCH_NAME}"
+        script.echo "[INFO] ${script.env}"
 
         addStageGroup(this.agentStatic) { group ->
 
