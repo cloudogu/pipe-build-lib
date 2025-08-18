@@ -6,6 +6,7 @@ import com.cloudogu.ces.dogubuildlib.*
 class DoguPipe extends BasePipe {
 
     EcoSystem ecoSystem
+    MultiNodeEcosystem multiNodeEcoSystem
     Git git
     GitFlow gitflow
     GitHub github
@@ -40,6 +41,7 @@ class DoguPipe extends BasePipe {
     String markdownVersion
     String agentStatic
     String agentVagrant
+    String agentMultinode
     String releaseWebhookUrlSecret
     String latestTag = ""
 
@@ -62,6 +64,7 @@ class DoguPipe extends BasePipe {
         this.markdownVersion        = config.markdownVersion ?: "3.11.0"
         this.agentStatic            = config.agentStatic ?: "sos"
         this.agentVagrant           = config.agentVagrant ?: "sos-stable"
+        this.agentMultinode         = config.agentMultinode ?: "docker"
         this.doguName               = config.doguName
         this.doguDir                = config.doguDirectory ?: '/dogu'
         this.backendUser            = config.backendUser ?: 'cesmarvin-setup'
@@ -95,6 +98,9 @@ class DoguPipe extends BasePipe {
 
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
         script.echo "[INFO] ecosystem object initialized"
+
+        // TODO Klärung der Credentials
+        multiNodeEcoSystem = new MultiNodeEcoSystem(this, "jenkins_workspace_gcloud_key", "automatic_migration_coder_token")
 
         // Inject helper: sanitizeForLabel
         ecoSystem.metaClass.sanitizeForLabel = { String input ->
@@ -324,6 +330,44 @@ end
                         }
                     }
                 }
+            }
+        }
+
+        addStageGroup(this.agentMultinode) { group ->
+
+            group.stage("Checkout", PipelineMode.STATIC) {
+                checkout_updatemakefiles(updateSubmodules)
+            }
+
+            group.stage('MN-Setup') {
+                def defaultSetupConfig = [
+                        clustername: script.params.ClusterName
+                ]
+                multiNodeEcoSystem.setup(defaultSetupConfig)
+            }
+
+            group.stage('MN-Build') {
+                script.env.NAMESPACE="ecosystem"
+                script.env.RUNTIME_ENV="remote"
+                multiNodeEcoSystem.build(doguName)
+            }
+
+            group.stage ("MN-Wait for Dogu") {
+                multiNodeEcoSystem.waitForDogu(doguName)
+            }
+
+            if (runIntegrationTests) {
+                group.stage("MN-Run Integration Tests") {
+                    multiNodeEcoSystem.runCypressIntegrationTests([
+                            cypressImage     : upgradeCypressImage,
+                            enableVideo      : script.params.EnableVideoRecording,
+                            enableScreenshots: script.params.EnableScreenshotRecording
+                    ])
+                }
+            }
+
+            group.stage("MN_Clean") {
+                multiNodeEcoSystem.destroy()
             }
         }
 
@@ -693,7 +737,8 @@ EOF
                 script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
                 script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
                 script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
-                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found')
+                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
+                script.string(name: 'ClusterName', defaultValue: 'test-am-mn-bdb82308-262', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
             ]            
         }
 
