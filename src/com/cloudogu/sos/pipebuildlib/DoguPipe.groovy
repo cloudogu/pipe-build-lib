@@ -6,7 +6,7 @@ import com.cloudogu.ces.dogubuildlib.*
 class DoguPipe extends BasePipe {
 
     EcoSystem ecoSystem
-    MultiNodeEcosystem multiNodeEcoSystem
+    MultiNodeEcoSystem multiNodeEcoSystem
     Git git
     GitFlow gitflow
     GitHub github
