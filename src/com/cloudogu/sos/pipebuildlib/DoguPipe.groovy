@@ -218,7 +218,7 @@ end
         String releaseVersion = ""
         String developmentBranch = "develop"
 
-        script.env.each { key, value ->
+        script.env.getEnvironment().each { key, value ->
             script.echo "${key}=${value}"
         }
 
