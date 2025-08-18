@@ -100,7 +100,7 @@ class DoguPipe extends BasePipe {
         script.echo "[INFO] ecosystem object initialized"
 
         // TODO Klärung der Credentials
-        multiNodeEcoSystem = new MultiNodeEcoSystem(script, "jenkins_workspace_gcloud_key", "automatic_migration_coder_token")
+        multiNodeEcoSystem = new MultiNodeEcoSystem(script, gcloudCredentials, sshCredentials)
 
         // Inject helper: sanitizeForLabel
         ecoSystem.metaClass.sanitizeForLabel = { String input ->
