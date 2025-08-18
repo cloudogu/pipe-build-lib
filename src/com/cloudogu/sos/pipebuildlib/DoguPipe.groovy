@@ -218,6 +218,8 @@ end
         String releaseVersion = ""
         String developmentBranch = "develop"
 
+        script.echo "[INFO] ${script.env.BRANCH_NAME}"
+
         addStageGroup(this.agentStatic) { group ->
 
             group.stage("Checkout", PipelineMode.STATIC) {
