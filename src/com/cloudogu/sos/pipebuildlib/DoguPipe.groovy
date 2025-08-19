@@ -30,6 +30,8 @@ class DoguPipe extends BasePipe {
     String cypressImage
     String upgradeCypressImage
     List dependedDogus
+    List additionalDogus
+    List additionalComponents
     int waitForDepTime
     String namespace
     boolean doSonarTests
@@ -78,6 +80,8 @@ class DoguPipe extends BasePipe {
         this.cypressImage           = config.cypressImage ?: "cypress/included:13.17.0"
         this.upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.17.0"
         this.dependedDogus          = config.dependencies ?: []
+        this.additionalDogus        = config.additionalDogus ?: []
+        this.additionalComponents   = config.additionalComponents ?: []
         this.waitForDepTime         = config.waitForDepTime ?: 15
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
@@ -345,8 +349,21 @@ end
 
             group.stage('MN-Setup') {
                 def defaultSetupConfig = [
-                        clustername: script.params.ClusterName
+                        clustername: script.params.ClusterName,
+                        additionalDogus: [],
+                        additionalComponents: []
                 ]
+                defaultSetupConfig.additionalDogus << additionalDogus
+                defaultSetupConfig.additionalComponents << additionalComponents
+                if (script.params.TestDoguUpgrade) {
+                    if (script.params.OldDoguVersionForUpgradeTest?.trim() && !script.params.OldDoguVersionForUpgradeTest.contains('v')) {
+                        script.echo "Installing user-defined version of dogu: ${script.params.OldDoguVersionForUpgradeTest}"
+                        defaultSetupConfig.additionalDogus << "${namespace}/${doguName}@${script.params.OldDoguVersionForUpgradeTest}"
+                    } else {
+                        script.echo "Installing latest released version of dogu..."
+                        defaultSetupConfig.additionalDogus << "${namespace}/${doguName}"
+                    }
+                }
                 multiNodeEcoSystem.setup(defaultSetupConfig)
             }
 
