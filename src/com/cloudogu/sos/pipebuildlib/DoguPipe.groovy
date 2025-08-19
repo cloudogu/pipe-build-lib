@@ -353,6 +353,17 @@ end
                         additionalDogus: [],
                         additionalComponents: []
                 ]
+                // Elemente hinzufügen, ohne Duplikate
+                additionalDogus.each { d ->
+                    if (!defaultSetupConfig.additionalDogus.contains(d)) {
+                        defaultSetupConfig.additionalDogus << d
+                    }
+                }
+                additionalComponents.each { c ->
+                    if (!defaultSetupConfig.additionalComponents.contains(c)) {
+                        defaultSetupConfig.additionalComponents << c
+                    }
+                }
                 defaultSetupConfig.additionalDogus << additionalDogus
                 defaultSetupConfig.additionalComponents << additionalComponents
                 if (script.params.TestDoguUpgrade) {
