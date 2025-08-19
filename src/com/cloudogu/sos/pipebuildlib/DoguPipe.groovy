@@ -769,7 +769,7 @@ EOF
                 script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
                 script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
                 script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
-                script.string(name: 'ClusterName', defaultValue: 'test-am-mn-bdb82308-262', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
+                script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
             ]            
         }
 
