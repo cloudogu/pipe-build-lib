@@ -364,8 +364,6 @@ end
                         defaultSetupConfig.additionalComponents << c
                     }
                 }
-                defaultSetupConfig.additionalDogus << additionalDogus
-                defaultSetupConfig.additionalComponents << additionalComponents
                 if (script.params.TestDoguUpgrade) {
                     if (script.params.OldDoguVersionForUpgradeTest?.trim() && !script.params.OldDoguVersionForUpgradeTest.contains('v')) {
                         script.echo "Installing user-defined version of dogu: ${script.params.OldDoguVersionForUpgradeTest}"
