@@ -386,6 +386,10 @@ end
                 multiNodeEcoSystem.waitForDogu(doguName)
             }
 
+            group.stage ("MN-Verify") {
+                multiNodeEcoSystem.verify(doguName)
+            }
+
             if (runIntegrationTests) {
                 group.stage("MN-Run Integration Tests") {
                     multiNodeEcoSystem.runCypressIntegrationTests([
