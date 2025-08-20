@@ -401,8 +401,10 @@ end
             }
 
             // this stage must be named "Clean" to get executed in any case at the end of the pipeline
-            group.stage("Clean") {
-                multiNodeEcoSystem.destroy()
+            if (!script.params.KeepCluster) {
+                group.stage("Clean") {
+                    multiNodeEcoSystem.destroy()
+                }
             }
 
         }
@@ -775,6 +777,7 @@ EOF
                 script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
                 script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
                 script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
+                script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
             ]            
         }
 
