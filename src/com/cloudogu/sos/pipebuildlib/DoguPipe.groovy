@@ -343,11 +343,11 @@ end
 
         addStageGroup(this.agentMultinode) { group ->
 
-            group.stage("Checkout", PipelineMode.STATIC) {
+            group.stage("Checkout", PipelineMode.INTEGRATIONMULTINODE) {
                 checkout_updatemakefiles(updateSubmodules)
             }
 
-            group.stage('MN-Setup') {
+            group.stage('MN-Setup', PipelineMode.INTEGRATIONMULTINODE) {
                 def defaultSetupConfig = [
                         clustername: script.params.ClusterName,
                         additionalDogus: [],
@@ -376,22 +376,22 @@ end
                 multiNodeEcoSystem.setup(defaultSetupConfig)
             }
 
-            group.stage('MN-Build') {
+            group.stage('MN-Build', PipelineMode.INTEGRATIONMULTINODE) {
                 script.env.NAMESPACE="ecosystem"
                 script.env.RUNTIME_ENV="remote"
                 multiNodeEcoSystem.build(doguName)
             }
 
-            group.stage ("MN-Wait for Dogu") {
+            group.stage ("MN-Wait for Dogu", PipelineMode.INTEGRATIONMULTINODE) {
                 multiNodeEcoSystem.waitForDogu(doguName)
             }
 
-            group.stage ("MN-Verify") {
+            group.stage ("MN-Verify", PipelineMode.INTEGRATIONMULTINODE) {
                 multiNodeEcoSystem.verify(doguName)
             }
 
             if (runIntegrationTests) {
-                group.stage("MN-Run Integration Tests") {
+                group.stage("MN-Run Integration Tests", PipelineMode.INTEGRATIONMULTINODE) {
                     multiNodeEcoSystem.runCypressIntegrationTests([
                             cypressImage     : upgradeCypressImage,
                             enableVideo      : script.params.EnableVideoRecording,
@@ -399,12 +399,12 @@ end
                     ])
                 }
             }
-            /*
+
             // this stage must be named "Clean" to get executed in any case at the end of the pipeline
             group.stage("Clean") {
                 multiNodeEcoSystem.destroy()
             }
-            */
+
         }
 
         addStageGroup(this.agentVagrant) { group ->
@@ -737,7 +737,7 @@ EOF
     void setBuildProperties(List<ParameterDefinition> customParams = null) {
         setupEnvironment()
         // Dynamically build the choices list
-        def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
+        def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION', 'INTEGRATIONMULTINODE']
         def defaultParams = []
         if (script.env.BRANCH_NAME == 'develop') {
             pipelineModeChoices << 'RELEASE'
