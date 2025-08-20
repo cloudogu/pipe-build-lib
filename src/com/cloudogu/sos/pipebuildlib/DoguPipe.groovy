@@ -399,11 +399,12 @@ end
                     ])
                 }
             }
-
+            /*
             // this stage must be named "Clean" to get executed in any case at the end of the pipeline
             group.stage("Clean") {
                 multiNodeEcoSystem.destroy()
             }
+            */
         }
 
         addStageGroup(this.agentVagrant) { group ->
