@@ -6,6 +6,7 @@ import com.cloudogu.ces.dogubuildlib.*
 class DoguPipe extends BasePipe {
 
     EcoSystem ecoSystem
+    MultiNodeEcoSystem multiNodeEcoSystem
     Git git
     GitFlow gitflow
     GitHub github
@@ -29,6 +30,8 @@ class DoguPipe extends BasePipe {
     String cypressImage
     String upgradeCypressImage
     List dependedDogus
+    List additionalDogus
+    List additionalComponents
     int waitForDepTime
     String namespace
     boolean doSonarTests
@@ -40,6 +43,7 @@ class DoguPipe extends BasePipe {
     String markdownVersion
     String agentStatic
     String agentVagrant
+    String agentMultinode
     String releaseWebhookUrlSecret
     String latestTag = ""
 
@@ -62,6 +66,7 @@ class DoguPipe extends BasePipe {
         this.markdownVersion        = config.markdownVersion ?: "3.11.0"
         this.agentStatic            = config.agentStatic ?: "sos"
         this.agentVagrant           = config.agentVagrant ?: "sos-stable"
+        this.agentMultinode         = config.agentMultinode ?: "docker"
         this.doguName               = config.doguName
         this.doguDir                = config.doguDirectory ?: '/dogu'
         this.backendUser            = config.backendUser ?: 'cesmarvin-setup'
@@ -75,6 +80,8 @@ class DoguPipe extends BasePipe {
         this.cypressImage           = config.cypressImage ?: "cypress/included:13.17.0"
         this.upgradeCypressImage    = config.upgradeCypressImage ?: "cypress/included:13.17.0"
         this.dependedDogus          = config.dependencies ?: []
+        this.additionalDogus        = config.additionalDogus ?: []
+        this.additionalComponents   = config.additionalComponents ?: []
         this.waitForDepTime         = config.waitForDepTime ?: 15
         this.namespace              = config.namespace ?: "official"
         this.doSonarTests           = config.doSonarTests ?: false
@@ -95,6 +102,8 @@ class DoguPipe extends BasePipe {
 
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
         script.echo "[INFO] ecosystem object initialized"
+
+        multiNodeEcoSystem = new MultiNodeEcoSystem(script, "jenkins_workspace_gcloud_key", "automatic_migration_coder_token", this.doguName)
 
         // Inject helper: sanitizeForLabel
         ecoSystem.metaClass.sanitizeForLabel = { String input ->
@@ -326,6 +335,73 @@ end
                 }
             }
         }
+
+        addStageGroup(this.agentMultinode) { group ->
+
+            group.stage("Checkout", PipelineMode.INTEGRATIONMULTINODE) {
+                checkout_updatemakefiles(updateSubmodules)
+            }
+
+            group.stage('MN-Setup', PipelineMode.INTEGRATIONMULTINODE) {
+                def defaultSetupConfig = [
+                        clustername: script.params.ClusterName,
+                        additionalDogus: [],
+                        additionalComponents: []
+                ]
+                additionalDogus.each { d ->
+                    if (!defaultSetupConfig.additionalDogus.contains(d)) {
+                        defaultSetupConfig.additionalDogus << d
+                    }
+                }
+                additionalComponents.each { c ->
+                    if (!defaultSetupConfig.additionalComponents.contains(c)) {
+                        defaultSetupConfig.additionalComponents << c
+                    }
+                }
+                if (script.params.TestDoguUpgrade) {
+                    if (script.params.OldDoguVersionForUpgradeTest?.trim() && !script.params.OldDoguVersionForUpgradeTest.contains('v')) {
+                        script.echo "Installing user-defined version of dogu: ${script.params.OldDoguVersionForUpgradeTest}"
+                        defaultSetupConfig.additionalDogus << "${namespace}/${doguName}@${script.params.OldDoguVersionForUpgradeTest}"
+                    } else {
+                        script.echo "Installing latest released version of dogu..."
+                        defaultSetupConfig.additionalDogus << "${namespace}/${doguName}"
+                    }
+                }
+                multiNodeEcoSystem.setup(defaultSetupConfig)
+            }
+
+            group.stage('MN-Build', PipelineMode.INTEGRATIONMULTINODE) {
+                script.env.NAMESPACE="ecosystem"
+                script.env.RUNTIME_ENV="remote"
+                multiNodeEcoSystem.build(doguName)
+            }
+
+            group.stage ("MN-Wait for Dogu", PipelineMode.INTEGRATIONMULTINODE) {
+                multiNodeEcoSystem.waitForDogu(doguName)
+            }
+
+            group.stage ("MN-Verify", PipelineMode.INTEGRATIONMULTINODE) {
+                multiNodeEcoSystem.verify(doguName)
+            }
+
+            if (runIntegrationTests) {
+                group.stage("MN-Run Integration Tests", PipelineMode.INTEGRATIONMULTINODE) {
+                    multiNodeEcoSystem.runCypressIntegrationTests([
+                            cypressImage     : upgradeCypressImage,
+                            enableVideo      : script.params.EnableVideoRecording,
+                            enableScreenshots: script.params.EnableScreenshotRecording
+                    ])
+                }
+            }
+
+            // you can keep the cluster for later inspection  default: false
+            if (!script.params.KeepCluster) {
+                // this stage must be named "Clean" to get executed in any case at the end of the pipeline
+                group.stage("Clean") {
+                    multiNodeEcoSystem.destroy()
+                }
+            }
+        } // end of Multinode-Integration-Test-Piplinebranch
 
         addStageGroup(this.agentVagrant) { group ->
             group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION)) {
@@ -657,7 +733,7 @@ EOF
     void setBuildProperties(List<ParameterDefinition> customParams = null) {
         setupEnvironment()
         // Dynamically build the choices list
-        def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION']
+        def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION', 'INTEGRATIONMULTINODE']
         def defaultParams = []
         if (script.env.BRANCH_NAME == 'develop') {
             pipelineModeChoices << 'RELEASE'
@@ -693,7 +769,9 @@ EOF
                 script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
                 script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
                 script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
-                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found')
+                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
+                script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
+                script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
             ]            
         }
 
