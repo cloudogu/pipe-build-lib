@@ -16,3 +16,7 @@
     - `git push origin develop`
     - `git push origin --tags`
 - Create a new GitHub release: https://github.com/cloudogu/pipe-build-lib
+- To mark the release for usage in Jenkins, set the `Default version`
+  for Library `pipe-build-lib` to the tag of the release:
+  https://ecosystem.cloudogu.com/jenkins/manage/configure
+  (Requires Jenkins admin permissions)
