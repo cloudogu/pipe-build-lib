@@ -1,4 +1,4 @@
-# Releasing the dogu-build-lib
+# Releasing the pipe-build-lib
 
 - Review and merge a new feature into the `develop` branch.
 - Check out the `master` and `develop` branch,
