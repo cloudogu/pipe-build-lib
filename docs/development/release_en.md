@@ -15,4 +15,4 @@
     - `git push origin master`
     - `git push origin develop`
     - `git push origin --tags`
-- Create a new GitHub release: https://github.com/cloudogu/dogu-build-lib/releases
+- Create a new GitHub release: https://github.com/cloudogu/pipe-build-lib
