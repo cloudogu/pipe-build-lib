@@ -103,7 +103,6 @@ class DoguPipe extends BasePipe {
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
         script.echo "[INFO] ecosystem object initialized"
 
-        // TODO Klärung der Credentials
         multiNodeEcoSystem = new MultiNodeEcoSystem(script, "jenkins_workspace_gcloud_key", "automatic_migration_coder_token")
 
         // Inject helper: sanitizeForLabel
@@ -221,10 +220,6 @@ end
         String releaseTargetBranch = ""
         String releaseVersion = ""
         String developmentBranch = "develop"
-
-        script.env.getEnvironment().each { key, value ->
-            script.echo "${key}=${value}"
-        }
 
         addStageGroup(this.agentStatic) { group ->
 
@@ -353,7 +348,6 @@ end
                         additionalDogus: [],
                         additionalComponents: []
                 ]
-                // Elemente hinzufügen, ohne Duplikate
                 additionalDogus.each { d ->
                     if (!defaultSetupConfig.additionalDogus.contains(d)) {
                         defaultSetupConfig.additionalDogus << d
@@ -400,14 +394,14 @@ end
                 }
             }
 
-            // this stage must be named "Clean" to get executed in any case at the end of the pipeline
+            // you can keep the cluster for later inspection  default: false
             if (!script.params.KeepCluster) {
+                // this stage must be named "Clean" to get executed in any case at the end of the pipeline
                 group.stage("Clean") {
                     multiNodeEcoSystem.destroy()
                 }
             }
-
-        }
+        } // end of Multinode-Integration-Test-Piplinebranch
 
         addStageGroup(this.agentVagrant) { group ->
             group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION)) {
