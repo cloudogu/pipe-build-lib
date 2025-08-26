@@ -738,47 +738,35 @@ EOF
         def currentBranch = script.env.BRANCH_NAME
         script.echo "[DEBUG] setBuildProperties, currentBranch: ${currentBranch}"
 
+        def baseParams = [
+            script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
+            script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
+            script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
+            script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
+            script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
+            script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
+            script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
+            script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
+        ]
+
+
         if (currentBranch == 'develop') {
             pipelineModeChoices << 'RELEASE'
-            defaultParams = [
-                script.choice(
-                    name: 'PipelineMode',
-                    choices: pipelineModeChoices,
-                    defaultValue: 'FULL',
-                    description: 'Select pipeline mode'
-                ),
-                script.string(
+            defaultParams << script.string(
                     name: 'ReleaseTag',
                     defaultValue: '',
                     description:"Only required if PipelineMode=RELEASE. Enter new release tag (latest: ${this.latestTag})."
-                ),
-                script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
-                script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
-                script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
-                script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
-                script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
-                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
-                script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
-                script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
-            ]
-        } else {
-            defaultParams = [
-                script.choice(
-                    name: 'PipelineMode',
-                    choices: pipelineModeChoices,
-                    defaultValue: 'FULL',
-                    description: 'Select pipeline mode'
-                ),
-                script.booleanParam(name: 'TestDoguUpgrade', defaultValue: false, description: 'Test dogu upgrade from latest release or optionally from defined version below'),
-                script.booleanParam(name: 'EnableVideoRecording', defaultValue: true, description: 'Enables cypress to record video of the integration tests.'),
-                script.booleanParam(name: 'EnableScreenshotRecording', defaultValue: true, description: 'Enables cypress to take screenshots of failing integration tests.'),
-                script.string(name: 'OldDoguVersionForUpgradeTest', defaultValue: '', description: 'Old Dogu version for the upgrade test (optional; e.g. 4.1.0-3)'),
-                script.choice(name: 'TrivySeverityLevels', choices: [TrivySeverityLevel.CRITICAL, TrivySeverityLevel.HIGH_AND_ABOVE, TrivySeverityLevel.MEDIUM_AND_ABOVE, TrivySeverityLevel.ALL], description: 'The levels to scan with trivy'),
-                script.choice(name: 'TrivyStrategy', choices: [TrivyScanStrategy.UNSTABLE, TrivyScanStrategy.FAIL, TrivyScanStrategy.IGNORE], description: 'What to do if vulnerabilities are found'),
-                script.string(name: 'ClusterName', defaultValue: '', description: 'Optional: Name of the multinode integration test cluster. A new instance gets created if this parameter is not supplied'),
-                script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
-            ]            
+                    )
         }
+
+        defaultParams << script.choice(
+                            name: 'PipelineMode',
+                            choices: pipelineModeChoices,
+                            defaultValue: 'FULL',
+                            description: 'Select pipeline mode'
+                            )
+
+        defaultParams.addAll(baseParams)
 
         script.properties([
             script.buildDiscarder(script.logRotator(numToKeepStr: '10')),
