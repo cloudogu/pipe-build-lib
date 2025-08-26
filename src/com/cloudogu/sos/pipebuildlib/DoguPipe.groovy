@@ -735,7 +735,10 @@ EOF
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION', 'INTEGRATIONMULTINODE']
         def defaultParams = []
-        if (script.env.BRANCH_NAME == 'develop') {
+        def currentBranch = script.env.BRANCH_NAME
+        script.echo "[DEBUG] setBuildProperties, currentBranch: ${currentBranch}"
+
+        if (currentBranch == 'develop') {
             pipelineModeChoices << 'RELEASE'
             defaultParams = [
                 script.choice(
