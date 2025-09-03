@@ -202,32 +202,31 @@ end
         //                   },
         //                   "timeout": 10000
         //                 }' > /docs/tmp-config.json
-        
+
         //                 find /docs -name \\*.md -print0 | \
         //                 xargs -0 -n1 -I {} markdown-link-check -v -c /docs/tmp-config.json {}
         //             '''
         //         }
         // }
     }
-    
+
     @Override
     void addDefaultStages() {
         // Load mode
-        String pipelineMode = script.params.pipelineMode ?: "FULL"
+        String pipelineMode = script.params.pipelineMode ?: 'FULL'
         script.echo "[INFO] Pipeline mode selected: ${pipelineMode}"
 
         // local vars
-        String releaseTargetBranch = ""
-        String releaseVersion = ""
-        String developmentBranch = "develop"
+        String releaseTargetBranch = ''
+        String releaseVersion = ''
+        String developmentBranch = 'develop'
 
         addStageGroup(this.agentStatic) { group ->
-
-            group.stage("Checkout", PipelineMode.STATIC) {
+            group.stage('Checkout', PipelineMode.STATIC) {
                 checkout_updatemakefiles(updateSubmodules)
             }
 
-            group.stage("Lint", PipelineMode.STATIC) {
+            group.stage('Lint', PipelineMode.STATIC) {
                 script.lintDockerfile()
             }
 
@@ -236,7 +235,7 @@ end
                     try {
                         markdown.check()
                     } catch (Exception firstFailure) {
-                        script.echo "[WARN] Markdown check failed. Retrying in 5 seconds..."
+                        script.echo '[WARN] Markdown check failed. Retrying in 5 seconds...'
                         script.sleep 5
                         try {
                             markdown.check()
@@ -246,9 +245,9 @@ end
                     }
                 }
             }
-            
+
             if (shellScripts) {
-                group.stage("Shellcheck", PipelineMode.STATIC) {
+                group.stage('Shellcheck', PipelineMode.STATIC) {
                     def shellCheck = { Object... args ->
                         def runWith = { String files ->
                             script.echo "[INFO] Overridden shellCheck using ${shellcheckImage}"
@@ -257,7 +256,7 @@ end
                                 script.sh "/bin/shellcheck ${files}"
                             }
                         }
-            
+
                         if (args && args[0]) {
                             script.echo "[INFO] args ${args}"
 
@@ -279,7 +278,6 @@ end
                             runWith(fileList)
                         }
                     }
-            
                     shellCheck(shellScripts)
                 }
             }
@@ -337,12 +335,11 @@ end
         }
 
         addStageGroup(this.agentMultinode) { group ->
-
-            group.stage("Checkout", PipelineMode.INTEGRATIONMULTINODE) {
+            group.raw_stage("Checkout", PipelineMode.INTEGRATIONMULTINODE) {
                 checkout_updatemakefiles(updateSubmodules)
             }
 
-            group.stage('MN-Setup', PipelineMode.INTEGRATIONMULTINODE) {
+            group.raw_stage('MN-Setup', PipelineMode.INTEGRATIONMULTINODE) {
                 def defaultSetupConfig = [
                         clustername: script.params.ClusterName,
                         additionalDogus: [],
@@ -370,22 +367,22 @@ end
                 multiNodeEcoSystem.setup(defaultSetupConfig)
             }
 
-            group.stage('MN-Build', PipelineMode.INTEGRATIONMULTINODE) {
+            group.raw_stage('MN-Build', PipelineMode.INTEGRATIONMULTINODE) {
                 script.env.NAMESPACE="ecosystem"
                 script.env.RUNTIME_ENV="remote"
                 multiNodeEcoSystem.build(doguName)
             }
 
-            group.stage ("MN-Wait for Dogu", PipelineMode.INTEGRATIONMULTINODE) {
+            group.raw_stage ("MN-Wait for Dogu", PipelineMode.INTEGRATIONMULTINODE) {
                 multiNodeEcoSystem.waitForDogu(doguName)
             }
 
-            group.stage ("MN-Verify", PipelineMode.INTEGRATIONMULTINODE) {
+            group.raw_stage ("MN-Verify", PipelineMode.INTEGRATIONMULTINODE) {
                 multiNodeEcoSystem.verify(doguName)
             }
 
             if (runIntegrationTests) {
-                group.stage("MN-Run Integration Tests", PipelineMode.INTEGRATIONMULTINODE) {
+                group.raw_stage("MN-Run Integration Tests", PipelineMode.INTEGRATIONMULTINODE) {
                     multiNodeEcoSystem.runCypressIntegrationTests([
                             cypressImage     : upgradeCypressImage,
                             enableVideo      : script.params.EnableVideoRecording,
@@ -397,7 +394,7 @@ end
             // you can keep the cluster for later inspection  default: false
             if (!script.params.KeepCluster) {
                 // this stage must be named "Clean" to get executed in any case at the end of the pipeline
-                group.stage("Clean") {
+                group.raw_stage("Clean") {
                     multiNodeEcoSystem.destroy()
                 }
             }
@@ -575,7 +572,6 @@ EOF
                             }
                     }
                 }
-                                
                 trivy.scanDogu(".", script.params.TrivySeverityLevels, script.params.TrivyStrategy)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.TABLE)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.JSON)
@@ -749,7 +745,6 @@ EOF
             script.booleanParam(name: 'KeepCluster', defaultValue: false, description: 'Optional: If True, the cluster will not be deleted after the build execution'),
         ]
 
-
         if (currentBranch == 'develop') {
             pipelineModeChoices << 'RELEASE'
             defaultParams << script.string(
@@ -869,11 +864,10 @@ EOF
 
     void setupEnvironment() {
         this.latestTag = fetchLatestTagInNode(script, this.gitUserName, this.doguName)
-    }   
+    }
 
     private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
         String tag = "unknown"
-    
         script.node {
             script.withCredentials([script.usernamePassword(
                 credentialsId: gitUserName,
@@ -881,13 +875,11 @@ EOF
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
                 script.sh "rm -rf repo && mkdir repo"
-    
                 script.dir('repo') {
                     script.sh """
                         git clone https://${'$'}GIT_AUTH_USR:${'$'}GIT_AUTH_PSW@github.com/cloudogu/${doguName}.git .
                         git fetch --tags
                     """
-    
                     tag = script.sh(
                         script: "git tag --list 'v*' --sort=-v:refname | head -n 1",
                         returnStdout: true
@@ -895,7 +887,6 @@ EOF
                 }
             }
         }
-    
         return tag
     }
 
