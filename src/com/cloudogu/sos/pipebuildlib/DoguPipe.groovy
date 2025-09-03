@@ -394,7 +394,7 @@ end
             // you can keep the cluster for later inspection  default: false
             if (!script.params.KeepCluster) {
                 // this stage must be named "Clean" to get executed in any case at the end of the pipeline
-                group.raw_stage("Clean") {
+                group.raw_stage("Clean", PipelineMode.INTEGRATIONMULTINODE) {
                     multiNodeEcoSystem.destroy()
                 }
             }
