@@ -127,6 +127,35 @@ abstract class BasePipe implements Serializable {
         stages.add(index + 1, new StageDefinition(newName, referenceModes, block))
     }
 
+    void insertStageBefore(String beforeName, String newName, Closure block) {
+        def normBefore = normalizeStageName(beforeName)
+    
+        StageGroup groupWithStage = stageGroups.find { group ->
+            group.stages.any { normalizeStageName(it.name) == normBefore }
+        }
+    
+        if (groupWithStage == null) {
+            script.echo "[Warning] insertStageBefore: No stage '${beforeName}' found"
+            return
+        }
+    
+        def stages = groupWithStage.stages
+        def index = stages.findIndexOf { normalizeStageName(it.name) == normBefore }
+    
+        if (index < 0) {
+            script.echo "[Warning] insertStageBefore: No stage '${beforeName}' found"
+            return
+        }
+    
+        if (stages.any { normalizeStageName(it.name) == normalizeStageName(newName) }) {
+            throw new IllegalArgumentException("Stage with name '${newName}' already exists.")
+        }
+    
+        def referenceModes = stages[index].modes
+    
+        stages.add(index, new StageDefinition(newName, referenceModes, block))
+    }
+
     void overrideStage(String name, Closure newBlock, Set<PipelineMode> newModes = null) {
         def stage = findStage(name)
         if (stage) {
