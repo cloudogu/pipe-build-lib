@@ -868,6 +868,8 @@ EOF
 
     private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
         String tag = "unknown"
+        String repoName = doguName == "easyredmine" ? "${doguName}-itz" : doguName
+    
         script.node {
             script.withCredentials([script.usernamePassword(
                 credentialsId: gitUserName,
@@ -877,7 +879,7 @@ EOF
                 script.sh "rm -rf repo && mkdir repo"
                 script.dir('repo') {
                     script.sh """
-                        git clone https://${'$'}GIT_AUTH_USR:${'$'}GIT_AUTH_PSW@github.com/cloudogu/${doguName}.git .
+                        git clone https://${'$'}GIT_AUTH_USR:${'$'}GIT_AUTH_PSW@github.com/cloudogu/${repoName}.git .
                         git fetch --tags
                     """
                     tag = script.sh(
@@ -889,5 +891,4 @@ EOF
         }
         return tag
     }
-
 }
