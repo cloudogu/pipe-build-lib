@@ -100,10 +100,6 @@ class DoguPipe extends BasePipe {
         docker = new Docker(script)
         changelog = new Changelog(script)
 
-        // Trivy stuff
-        this.trivyLocalReportPath = "trivy/trivyReport.json"
-        this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
-
         script.echo "[INFO] Init ecosystem object"
 
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
@@ -525,6 +521,9 @@ EOF
                 }
                 ecoSystem.build(doguDir)
             }
+
+            this.trivyLocalReportPath = "trivy/trivyReport.json"
+            this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
 
             group.stage("Trivy scan", PipelineMode.INTEGRATION) {
                 ecoSystem.copyDoguImageToJenkinsWorker(doguDir)
