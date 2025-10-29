@@ -47,9 +47,6 @@ class DoguPipe extends BasePipe {
     String releaseWebhookUrlSecret
     String latestTag = ""
 
-    String trivyLocalReportPath
-    String trivyRemoteReportPath
-
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
@@ -522,9 +519,6 @@ EOF
                 ecoSystem.build(doguDir)
             }
 
-            this.trivyLocalReportPath = "trivy/trivyReport.json"
-            this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
-
             group.stage("Trivy scan", PipelineMode.INTEGRATION) {
                 ecoSystem.copyDoguImageToJenkinsWorker(doguDir)
                 Trivy trivy = new Trivy(script)
@@ -535,7 +529,7 @@ EOF
                         String strategy = TrivyScanStrategy.UNSTABLE
                         // Avoid rate limits of default Trivy database source
                         String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db"
-                        String trivyReportFile = trivyLocalReportPath
+                        String trivyReportFile = "trivy/trivyReport.json"
 
                         script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
                         String trivyVersion = "0.67.2"
@@ -589,9 +583,10 @@ EOF
                         usernameVariable: 'ACCESS_KEY',
                         passwordVariable: 'SECRET_KEY'
                 )]) {
+                    String remotePath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
                     script.sh """
-                            curl "https://trivy.fsn1.your-objectstorage.com/${remote_filename}" \
-                                --upload-file "${local_filename}" \
+                            curl "https://trivy.fsn1.your-objectstorage.com/${remotePath}" \
+                                --upload-file "trivy/trivyReport.json" \
                                 --user "${ACCESS_KEY}:${SECRET_KEY}" \
                                 --aws-sigv4 "aws:amz:fsn1:s3" \
                                 --header "x-amz-content-sha256: UNSIGNED-PAYLOAD"
