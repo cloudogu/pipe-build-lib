@@ -747,7 +747,7 @@ EOF
     }
 
     @Override
-    void setBuildProperties(List<ParameterDefinition> customParams = null) {
+    void setBuildProperties(List<hudson.model.ParameterDefinition> customParams = null) {
         setupEnvironment()
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION', 'INTEGRATIONMULTINODE']
