@@ -526,13 +526,13 @@ EOF
                 Trivy trivy = new Trivy(script)
                 if (!config.checkEOL) {
                     trivy.metaClass.scanImage = {
-                        String imageName,
-                        String severityLevel = TrivySeverityLevel.CRITICAL,
-                        String strategy = TrivyScanStrategy.UNSTABLE,
+                        String imageName
+                        String severityLevel = TrivySeverityLevel.CRITICAL
+                        String strategy = TrivyScanStrategy.UNSTABLE
                         // Avoid rate limits of default Trivy database source
-                        String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db",
-                        String trivyReportFile = "trivy/trivyReport.json" ->
-                        
+                        String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db"
+                        String trivyReportFile = "trivy/trivyReport.json"
+
                         script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
                         String trivyVersion = "0.67.2"
                         String trivyImage = "aquasec/trivy"
