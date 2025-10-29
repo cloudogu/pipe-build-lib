@@ -48,6 +48,8 @@ class DoguPipe extends BasePipe {
     String releaseWebhookUrlSecret
     String latestTag = ""
 
+    String trivyLocalReportPath
+    String trivyRemoteReportPath
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
@@ -98,6 +100,12 @@ class DoguPipe extends BasePipe {
         github = new GitHub(script, git)
         docker = new Docker(script)
         changelog = new Changelog(script)
+
+        // Trivy stuff
+        this.trivyLocalReportPath = "trivy/trivyReport.json"
+        this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" \
+                                    + new SimpleDateFormat("yyyy-MM-ddTHH:mm:ssZ").format(new Date()) \
+                                    + "-" + git.getCommitHash() + "-report.json"
 
         script.echo "[INFO] Init ecosystem object"
 
@@ -531,7 +539,7 @@ EOF
                         String strategy = TrivyScanStrategy.UNSTABLE
                         // Avoid rate limits of default Trivy database source
                         String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db"
-                        String trivyReportFile = "trivy/trivyReport.json"
+                        String trivyReportFile = trivyLocalReportPath
 
                         script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
                         String trivyVersion = "0.67.2"
@@ -580,10 +588,6 @@ EOF
             }
 
             group.stage("Archive Trivy", PipelineMode.INTEGRATION) {
-                var local_filename = "trivy/trivyReport.json"
-                var remote_filename = "dogus" + "/" + this.namespace + "/" + doguName + "/" \
-                     + new SimpleDateFormat("yyyy-MM-ddTHH:mm:ssZ").format(new Date()) \
-                     + "-" + git.getCommitHash() + "-report.json"
                 script.withCredentials([script.usernamePassword(
                         credentialsId: 'trivy-archive-s3-keys',
                         usernameVariable: 'ACCESS_KEY',
