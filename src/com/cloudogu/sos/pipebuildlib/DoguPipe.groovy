@@ -2,7 +2,6 @@ package com.cloudogu.sos.pipebuildlib
 
 import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
-import java.text.SimpleDateFormat
 
 class DoguPipe extends BasePipe {
 
@@ -103,9 +102,7 @@ class DoguPipe extends BasePipe {
 
         // Trivy stuff
         this.trivyLocalReportPath = "trivy/trivyReport.json"
-        this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" \
-                                    + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new Date()) \
-                                    + "-" + git.getCommitHash() + "-report.json"
+        this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
 
         script.echo "[INFO] Init ecosystem object"
 
