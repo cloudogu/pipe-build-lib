@@ -583,8 +583,7 @@ EOF
                         usernameVariable: 'ACCESS_KEY',
                         passwordVariable: 'SECRET_KEY'
                 )]) {
-                    String timestamp = script.sh(script: "date --date=@\"\$(date +%s)\" --utc --iso-8601=\"seconds\"", returnStdout: true).trim()
-                    String remotePath = "dogus" + "/" + this.namespace + "/" + doguName + "/${timestamp}-" + git.getCommitHash() + ".json"
+                    String remotePath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
                     script.sh """
                             curl "https://trivy.fsn1.your-objectstorage.com/${remotePath}" \
                                 --upload-file "trivy/trivyReport.json" \
