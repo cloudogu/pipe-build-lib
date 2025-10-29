@@ -104,7 +104,7 @@ class DoguPipe extends BasePipe {
         // Trivy stuff
         this.trivyLocalReportPath = "trivy/trivyReport.json"
         this.trivyRemoteReportPath = "dogus" + "/" + this.namespace + "/" + doguName + "/" \
-                                    + new SimpleDateFormat("yyyy-MM-ddTHH:mm:ssZ").format(new Date()) \
+                                    + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new Date()) \
                                     + "-" + git.getCommitHash() + "-report.json"
 
         script.echo "[INFO] Init ecosystem object"
