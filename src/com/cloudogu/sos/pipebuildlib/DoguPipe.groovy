@@ -587,7 +587,7 @@ EOF
                     script.sh """
                             curl "https://trivy.fsn1.your-objectstorage.com/${remotePath}" \
                                 --upload-file "trivy/trivyReport.json" \
-                                --user "${ACCESS_KEY}:${SECRET_KEY}" \
+                                --user "\${ACCESS_KEY}:\${SECRET_KEY}" \
                                 --aws-sigv4 "aws:amz:fsn1:s3" \
                                 --header "x-amz-content-sha256: UNSIGNED-PAYLOAD"
                         """
