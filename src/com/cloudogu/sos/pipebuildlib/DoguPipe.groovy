@@ -2,6 +2,7 @@ package com.cloudogu.sos.pipebuildlib
 
 import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
+import java.text.SimpleDateFormat
 
 class DoguPipe extends BasePipe {
 
@@ -576,6 +577,26 @@ EOF
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.TABLE)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.JSON)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.HTML)
+            }
+
+            group.stage("Archive Trivy", PipelineMode.INTEGRATION) {
+                var local_filename = "trivy/trivyReport.json"
+                var remote_filename = "dogus" + "/" + this.namespace + "/" + doguName + "/" \
+                     + new SimpleDateFormat("yyyy-MM-ddTHH:mm:ssZ").format(new Date()) \
+                     + "-" + git.getCommitHash() + "-report.json"
+                script.withCredentials([script.usernamePassword(
+                        credentialsId: 'trivy-archive-s3-keys',
+                        usernameVariable: 'ACCESS_KEY',
+                        passwordVariable: 'SECRET_KEY'
+                )]) {
+                    script.sh """
+                            curl "https://trivy.fsn1.your-objectstorage.com/${remote_filename}" \
+                                --upload-file "${local_filename}" \
+                                --user "${ACCESS_KEY}:${SECRET_KEY}" \
+                                --aws-sigv4 "aws:amz:fsn1:s3" \
+                                --header "x-amz-content-sha256: UNSIGNED-PAYLOAD"
+                        """
+                }
             }
 
             group.stage("Verify", PipelineMode.INTEGRATION) {
