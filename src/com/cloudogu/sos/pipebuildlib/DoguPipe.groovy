@@ -47,7 +47,6 @@ class DoguPipe extends BasePipe {
     String releaseWebhookUrlSecret
     String latestTag = ""
 
-
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
     final List<String> allowedReleaseUsers = ['fhuebner', 'mkannathasan', 'dschwarzer']
@@ -535,10 +534,10 @@ EOF
                         script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
                         String trivyVersion = "0.67.2"
                         String trivyImage = "aquasec/trivy"
-                        String trivyDirectory = "trivy"                       
+                        String trivyDirectory = "trivy"
                         String script_str = "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} -o ${trivyReportFile} --severity ${severityLevel} ${additionalFlags} ${imageName}"
                         script.echo "[DEBUG] script_str: ${script_str}"
-                        Integer exitCode = docker.image("${trivyImage}:${trivyVersion}") 
+                        Integer exitCode = docker.image("${trivyImage}:${trivyVersion}")
                         .mountJenkinsUser()
                         .mountDockerSocket()
                         .inside("-v ${script.env.WORKSPACE}/.trivy/.cache:/root/.cache/") {
@@ -576,6 +575,23 @@ EOF
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.TABLE)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.JSON)
                 trivy.saveFormattedTrivyReport(TrivyScanFormat.HTML)
+            }
+
+            group.stage("Archive Trivy", PipelineMode.INTEGRATION) {
+                script.withCredentials([script.usernamePassword(
+                        credentialsId: 'trivy-archive-s3-keys',
+                        usernameVariable: 'ACCESS_KEY',
+                        passwordVariable: 'SECRET_KEY'
+                )]) {
+                    String remotePath = "dogus" + "/" + this.namespace + "/" + doguName + "/" + git.getCommitHash() + ".json"
+                    script.sh """
+                            curl "https://trivy.fsn1.your-objectstorage.com/${remotePath}" \
+                                --upload-file "trivy/trivyReport.json" \
+                                --user "\${ACCESS_KEY}:\${SECRET_KEY}" \
+                                --aws-sigv4 "aws:amz:fsn1:s3" \
+                                --header "x-amz-content-sha256: UNSIGNED-PAYLOAD"
+                        """
+                }
             }
 
             group.stage("Verify", PipelineMode.INTEGRATION) {
@@ -681,12 +697,12 @@ EOF
 • <${repoUrl}/releases/tag/${releaseVersion}|View Changelog>
 """.stripIndent()
             def messageTextclean = messageText
-    
+
             def message = [
                 text: messageTextclean,
                 formattedText: messageText
             ]
-        
+
             try {
                 def response = script.httpRequest(
                     httpMode: 'POST',
@@ -726,7 +742,7 @@ EOF
     }
 
     @Override
-    void setBuildProperties(List<ParameterDefinition> customParams = null) {
+    void setBuildProperties(List<hudson.model.ParameterDefinition> customParams = null) {
         setupEnvironment()
         // Dynamically build the choices list
         def pipelineModeChoices = ['FULL', 'STATIC', 'INTEGRATION', 'INTEGRATIONMULTINODE']
@@ -869,7 +885,7 @@ EOF
     private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
         String tag = "unknown"
         String repoName = doguName == "easyredmine" ? "${doguName}-itz" : doguName
-    
+
         script.node {
             script.withCredentials([script.usernamePassword(
                 credentialsId: gitUserName,
