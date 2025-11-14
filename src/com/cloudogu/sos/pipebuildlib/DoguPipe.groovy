@@ -155,7 +155,7 @@ Vagrant.configure(2) do |config|
     google.image_family = 'sos-development2404'
     google.zone = "europe-west3-a"
     google.machine_type = "${machineType}"
-    google.disk_type = "pd-ssd"
+    google.disk_type = "pd‑extreme"
     # preemptible
     google.preemptible = true
     google.auto_restart = false
