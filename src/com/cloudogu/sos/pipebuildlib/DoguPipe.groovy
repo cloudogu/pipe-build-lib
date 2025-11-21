@@ -14,6 +14,7 @@ class DoguPipe extends BasePipe {
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
+    Makefile makefile
     Map config
 
     String doguName
@@ -96,6 +97,7 @@ class DoguPipe extends BasePipe {
         github = new GitHub(script, git)
         docker = new Docker(script)
         changelog = new Changelog(script)
+        makefile = new Makefile(script)
 
         script.echo "[INFO] Init ecosystem object"
 
@@ -640,7 +642,11 @@ EOF
                         usernameVariable: 'GIT_AUTH_USR',
                         passwordVariable: 'GIT_AUTH_PSW'
                     )]) {
-                        script.sh """
+                        releaseTargetBranch = "main"
+                        releaseDevelopBranch = "develop"
+                        baseVersion = makefile.getBaseVersion()
+                        if (baseVersion != null && baseVersion != "") {
+                            script.sh """
                             git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
                             git fetch origin +refs/heads/*:refs/remotes/origin/*
 
@@ -653,15 +659,23 @@ EOF
                             fi)
 
                             echo "\$release_target" > release_target.txt
-                        """
+                            """
+                            releaseTargetBranch = script.readFile('release_target.txt').trim()
+                            releaseDevelopBranch = "develop"
+                        } else {
+
+                            releaseTargetBranch = baseVersion + "/main"
+                            releaseDevelopBranch = baseVersion + "/develop"
+                        }
+
+
                         releaseVersion = git.getSimpleBranchName()
-                        releaseTargetBranch = script.readFile('release_target.txt').trim()
                         script.echo "[DEBUG] release branch: ${releaseTargetBranch}"
                     }
                 }
                 group.stage('Finish Release') {
                     // Optionally, target branch can be provided (default "main")
-                    gitflow.finishRelease(releaseVersion, releaseTargetBranch)
+                    gitflow.finishRelease(releaseVersion, releaseTargetBranch, releaseDevelopBranch)
                 }
                 group.stage('Push Dogu to registry') {
                     ecoSystem.push(doguDir)
