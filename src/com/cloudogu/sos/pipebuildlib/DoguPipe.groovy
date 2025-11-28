@@ -132,7 +132,7 @@ class DoguPipe extends BasePipe {
         }
 
         ecoSystem.metaClass.build = { String doguPath ->
-            vagrant.ssh "sudo cp /root/cesapp/cesapp /usr/sbin/cesapp && sudo cesapp build --buildx ${doguPath}"
+            vagrant.ssh "sudo sh -c 'mkdir -p /home/ces-admin/.docker /home/ces-admin/.config; if [ -d /root/.docker ]; then cp -a /root/.docker/config.json /home/ces-admin/.docker/config.json || true; fi; if [ -d /root/.config/gcloud ]; then cp -a /root/.config/gcloud /home/ces-admin/.config/ || true; fi; chown -R ces-admin:ces-admin /home/ces-admin/.docker /home/ces-admin/.config/gcloud || true; cp /root/cesapp/cesapp /usr/sbin/cesapp; chmod +x /usr/sbin/cesapp; sudo -u ces-admin DOCKER_CONFIG=/home/ces-admin/.docker CLOUDSDK_CONFIG=/home/ces-admin/.config/gcloud cesapp build --buildx ${doguPath}'"
         }
 
         // overriding vagrant configuration so that sos image is used and labels set
