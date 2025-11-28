@@ -131,6 +131,10 @@ class DoguPipe extends BasePipe {
             return ecoSystem.sanitizeForLabel(jobName)
         }
 
+        ecoSystem.metaClass.build = { String doguPath ->
+            vagrant.ssh "sudo cp /root/cesapp /usr/sbin/cesapp && sudo cesapp build --buildx ${doguPath}"
+        }
+
         // overriding vagrant configuration so that sos image is used and labels set
         ecoSystem.metaClass.writeVagrantConfiguration = { String mountPath, String machineType = machineType ->
         def pipelineName = ecoSystem.getPipelineName()
