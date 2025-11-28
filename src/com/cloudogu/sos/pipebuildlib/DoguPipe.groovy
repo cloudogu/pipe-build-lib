@@ -132,6 +132,7 @@ class DoguPipe extends BasePipe {
         }
 
         ecoSystem.metaClass.build = { String doguPath ->
+            vagrant.ssh "sudo cp /root/cesapp/cesapp /usr/sbin/cesapp"
             vagrant.ssh "sudo cesapp build --buildx ${doguPath}"
         }
 
