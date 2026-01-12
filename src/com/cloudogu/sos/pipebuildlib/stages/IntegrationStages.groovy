@@ -10,10 +10,10 @@ class IntegrationStages implements DoguStageModule {
         String releaseTargetBranch = ''
         String releaseVersion = ''
 
-        group.stage("Checkout", EnumSet.of(PipelineMode.INTEGRATION)) {
-            checkout_updatemakefiles(updateSubmodules)
+        group.stage("Checkout", PipelineMode.INTEGRATION) {
+            pipe.checkout_updatemakefiles(pipe.updateSubmodules)
         }
-        
+
         group.stage("Provision", PipelineMode.INTEGRATION) {
             if (pipe.gitflow.isPreReleaseBranch()) {
                 pipe.script.sh "make prerelease_namespace"
