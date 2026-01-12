@@ -1,4 +1,4 @@
-package com.cloudogu.sos.pipebuildlib.dogu
+package com.cloudogu.sos.pipebuildlib
 
 import com.cloudogu.sos.pipebuildlib.*
 import com.cloudogu.sos.pipebuildlib.dogu.*
