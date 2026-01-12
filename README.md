@@ -49,7 +49,7 @@ Assigns multiple stages to different agents using a map.
 
 ---
 
-### ▶️ Execution
+### Execution
 
 #### `run()`
 Groups all added stages by their agent and:
@@ -83,9 +83,9 @@ This means:
 
 ```groovy
 group.stage("Build", PipelineMode.INTEGRATION) { ... }
+```
 
 ---
-
 
 ##  DoguPipe
 
@@ -114,7 +114,7 @@ Adds a full set of predefined build/test/release stages.
 
 ---
 
-## ⚙️ Basic Usage in Jenkinsfile
+## Basic Usage in Jenkinsfile
 
 ```groovy
 @Library('pipebuildlib') _
