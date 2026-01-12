@@ -268,9 +268,6 @@ Think of a `StageGroup` as:
 
 Different queues → different machines → parallel execution.
 
-This is what makes PipeBuildLib scale across Jenkins agents without
-turning into chaos.
-
 ## Usage Examples
 
 ### Initialize and Run Custom Pipeline
