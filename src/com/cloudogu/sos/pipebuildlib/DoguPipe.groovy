@@ -14,7 +14,7 @@ class DoguPipe extends BasePipe {
 
     DoguPipe(script, Map raw) {
         super(script)
-        this.config = new DoguConfig(raw)
+        this.config = new DoguConfig(script, raw)
     }
 
     // Transparenter Zugriff: dogu.ecoSystem → config.ecoSystem

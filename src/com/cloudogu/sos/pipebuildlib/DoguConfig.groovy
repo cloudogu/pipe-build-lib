@@ -53,7 +53,8 @@ class DoguConfig {
     final String shellcheckImage = "koalaman/shellcheck-alpine:v0.10.0"
     String jenkinsUser
 
-    DoguConfig(Map config) {
+    DoguConfig(script, Map config) {
+        super(script)
         this.config = config
 
         // config map vars
