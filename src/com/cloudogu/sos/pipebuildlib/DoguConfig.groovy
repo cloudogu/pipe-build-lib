@@ -36,6 +36,7 @@ class DoguConfig {
     String namespace
     boolean doSonarTests
     boolean checkMarkdown
+    boolean runShellTests
 
     String gitUserName
     String committerEmail
@@ -46,7 +47,6 @@ class DoguConfig {
     String agentVagrant
     String agentMultinode
     String releaseWebhookUrlSecret
-    String latestTag = ""
 
     final String githubId = 'cesmarvin'
     final String machineType = 'n2-standard-8'
@@ -87,6 +87,7 @@ class DoguConfig {
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
         this.checkEOL               = config.checkEOL ?: true
         this.checkMarkdown          = config.checkMarkdown ?: false
+        this.runShellTests          = config.runShellTests ?: false
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
