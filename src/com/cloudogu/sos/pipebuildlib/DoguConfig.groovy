@@ -37,6 +37,7 @@ class DoguConfig {
     boolean doSonarTests
     boolean checkMarkdown
     boolean runShellTests
+    String latestTag = ""
 
     String gitUserName
     String committerEmail
