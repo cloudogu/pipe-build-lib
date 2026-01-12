@@ -51,18 +51,7 @@ class DoguPipe extends BasePipe {
 
         addStageGroup(this.agentVagrant) { group ->
             new IntegrationStages().register(this, group)
-        }
-        addStageGroup(this.agentVagrant) { group ->
-            if (gitflow.isReleaseBranch()) {
-                new ReleaseStages().register(this, group)
-            } else if (gitflow.isPreReleaseBranch()) {
-                group.stage("Push Prerelease Dogu to registry") {
-                    ecoSystem.pushPreRelease(doguDir)
-                }
-            }
-            group.stage("Clean") {
-                ecoSystem.destroy()
-            }
+            new ReleaseStages().register(this, group)
         }
     }
 
