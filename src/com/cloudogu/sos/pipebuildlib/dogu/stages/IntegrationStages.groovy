@@ -229,7 +229,7 @@ class IntegrationStages implements DoguStageModule {
             }
         } else if (pipe.gitflow.isPreReleaseBranch()) {
             group.stage("Push Prerelease Dogu to registry") {
-                ecoSystem.pushPreRelease(doguDir)
+                pipe.ecoSystem.pushPreRelease(doguDir)
             }
         }
     }

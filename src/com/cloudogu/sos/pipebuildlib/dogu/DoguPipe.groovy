@@ -51,6 +51,9 @@ class DoguPipe extends BasePipe {
         addStageGroup(this.agentVagrant) { group ->
             new IntegrationStages().register(this, group)
             new ReleaseStages().register(this, group)
+            group.stage("Clean") {
+                ecoSystem.destroy()
+            }
         }
     }
 
