@@ -1,10 +1,6 @@
 package com.cloudogu.sos.pipebuildlib.dogu
 
-import com.cloudogu.sos.pipebuildlib.dogu.stages.StaticStages
-import com.cloudogu.sos.pipebuildlib.dogu.stages.IntegrationStages
-import com.cloudogu.sos.pipebuildlib.dogu.stages.MultinodeStages
-import com.cloudogu.sos.pipebuildlib.dogu.stages.ReleaseStages
-
+import com.cloudogu.sos.pipebuildlib.*
 import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
 
