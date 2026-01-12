@@ -1,4 +1,4 @@
-package com.cloudogu.sos.pipebuildlib
+package com.cloudogu.sos.pipebuildlib.stages
 
 class IntegrationStages implements DoguStageModule {
 
