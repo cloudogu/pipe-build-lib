@@ -11,18 +11,18 @@ class IntegrationStages implements DoguStageModule {
         String releaseTargetBranch = ''
         String releaseVersion = ''
 
-        group.stage("Checkout", PipelineMode.INTEGRATION) {
+        group.stage('Checkout', PipelineMode.INTEGRATION) {
             pipe.checkout_updatemakefiles(pipe.updateSubmodules)
         }
 
-        group.stage("Provision", PipelineMode.INTEGRATION) {
+        group.stage('Provision', PipelineMode.INTEGRATION) {
             if (pipe.gitflow.isPreReleaseBranch()) {
-                pipe.script.sh "make prerelease_namespace"
+                pipe.script.sh 'make prerelease_namespace'
             }
             pipe.ecoSystem.provision(pipe.doguDir, pipe.machineType)
         }
 
-        group.stage("Setup", PipelineMode.INTEGRATION) {
+        group.stage('Setup', PipelineMode.INTEGRATION) {
             pipe.ecoSystem.loginBackend(pipe.backendUser)
 
             def setupArgs = [:]
@@ -34,13 +34,13 @@ class IntegrationStages implements DoguStageModule {
                 pipe.script.echo "[INFO] Calling setup with: ${setupArgs.keySet()}"
                 pipe.ecoSystem.setup(*: setupArgs)
             } else {
-                pipe.script.echo "[INFO] Calling setup with no arguments"
+                pipe.script.echo '[INFO] Calling setup with no arguments'
                 pipe.ecoSystem.setup()
             }
         }
 
         if (pipe.dependedDogus) {
-            group.stage("Wait for dependencies", PipelineMode.INTEGRATION) {
+            group.stage('Wait for dependencies', PipelineMode.INTEGRATION) {
                 pipe.script.timeout(time: pipe.waitForDepTime, unit: 'MINUTES') {
                     pipe.dependedDogus.each { dep ->
                         pipe.ecoSystem.waitForDogu(dep)
@@ -49,19 +49,19 @@ class IntegrationStages implements DoguStageModule {
             }
         }
 
-        group.stage("Build", PipelineMode.INTEGRATION) {
-            def rawPreinstalled = pipe.ecoSystem.defaultSetupConfig["dependencies"].collect { it.split("/")[1] }
+        group.stage('Build', PipelineMode.INTEGRATION) {
+            def rawPreinstalled = pipe.ecoSystem.defaultSetupConfig['dependencies'].collect { it.split('/')[1] }
 
             if (rawPreinstalled.contains(pipe.doguName) && pipe.gitflow.isPreReleaseBranch()) {
                 pipe.ecoSystem.purgeDogu(
                     pipe.doguName,
-                    "--keep-config --keep-volumes --keep-service-accounts --keep-logs"
+                    '--keep-config --keep-volumes --keep-service-accounts --keep-logs'
                 )
             }
             pipe.ecoSystem.build(pipe.doguDir)
         }
 
-        group.stage("Trivy scan", PipelineMode.INTEGRATION) {
+        group.stage('Trivy scan', PipelineMode.INTEGRATION) {
             pipe.ecoSystem.copyDoguImageToJenkinsWorker(pipe.doguDir)
 
             Trivy trivy = new Trivy(pipe.script)
@@ -73,11 +73,11 @@ class IntegrationStages implements DoguStageModule {
                                               String additionalFlags = "--db-repository public.ecr.aws/aquasecurity/trivy-db --java-db-repository public.ecr.aws/aquasecurity/trivy-java-db",
                                               String trivyReportFile = "trivy/trivyReport.json" ->
 
-                    pipe.script.echo "[DEBUG] trivy.metaClass.scanImage overwritten"
+                    pipe.script.echo '[DEBUG] trivy.metaClass.scanImage overwritten'
 
-                    String trivyVersion = "0.67.2"
-                    String trivyImage = "aquasec/trivy"
-                    String trivyDirectory = "trivy"
+                    String trivyVersion = '0.67.2'
+                    String trivyImage = 'aquasec/trivy'
+                    String trivyDirectory = 'trivy'
 
                     String script_str =
                         "trivy image --exit-code 10 --exit-on-eol 0 --format ${TrivyScanFormat.JSON} " +
@@ -87,7 +87,7 @@ class IntegrationStages implements DoguStageModule {
                         .mountJenkinsUser()
                         .mountDockerSocket()
                         .inside("-v ${pipe.script.env.WORKSPACE}/.trivy/.cache:/root/.cache/") {
-                            pipe.script.sh("mkdir -p " + trivyDirectory)
+                            pipe.script.sh('mkdir -p ' + trivyDirectory)
                             pipe.script.sh(script: script_str, returnStatus: true)
                         }
 
@@ -106,18 +106,18 @@ class IntegrationStages implements DoguStageModule {
                             }
                             return false
                         default:
-                            pipe.script.error("Error during trivy scan; exit code: " + exitCode)
+                            pipe.script.error('Error during trivy scan; exit code: ' + exitCode)
                     }
                 }
             }
 
-            trivy.scanDogu(".", pipe.script.params.TrivySeverityLevels, pipe.script.params.TrivyStrategy)
+            trivy.scanDogu('.', pipe.script.params.TrivySeverityLevels, pipe.script.params.TrivyStrategy)
             trivy.saveFormattedTrivyReport(TrivyScanFormat.TABLE)
             trivy.saveFormattedTrivyReport(TrivyScanFormat.JSON)
             trivy.saveFormattedTrivyReport(TrivyScanFormat.HTML)
         }
 
-        group.stage("Archive Trivy", PipelineMode.INTEGRATION) {
+        group.stage('Archive Trivy', PipelineMode.INTEGRATION) {
             pipe.script.withCredentials([pipe.script.usernamePassword(
                 credentialsId: 'trivy-archive-s3-keys',
                 usernameVariable: 'ACCESS_KEY',
@@ -135,31 +135,28 @@ class IntegrationStages implements DoguStageModule {
             }
         }
 
-        group.stage("Verify", PipelineMode.INTEGRATION) {
+        group.stage('Verify', PipelineMode.INTEGRATION) {
             pipe.ecoSystem.verify(pipe.doguDir)
         }
 
         if (pipe.runIntegrationTests) {
-            group.stage("Integration Tests", PipelineMode.INTEGRATION) {
+            group.stage('Integration Tests', PipelineMode.INTEGRATION) {
                 pipe.runCypress(pipe.ecoSystem, pipe.cypressImage)
             }
         }
 
         if (pipe.script.params.TestDoguUpgrade) {
-            group.stage("Upgrade Dogu", PipelineMode.INTEGRATION) {
-
+            group.stage('Upgrade Dogu', PipelineMode.INTEGRATION) {
                 pipe.ecoSystem.purgeDogu(pipe.doguName)
 
                 if (pipe.script.params.OldDoguVersionForUpgradeTest?.trim() &&
                     !pipe.script.params.OldDoguVersionForUpgradeTest.contains('v')) {
-
                     pipe.script.echo "Installing user-defined version of dogu: ${pipe.script.params.OldDoguVersionForUpgradeTest}"
                     pipe.ecoSystem.installDogu("${pipe.namespace}/${pipe.doguName} ${pipe.script.params.OldDoguVersionForUpgradeTest}")
-
                 } else {
-                    pipe.script.echo "Installing latest released version of dogu..."
+                    pipe.script.echo 'Installing latest released version of dogu...'
                     pipe.ecoSystem.installDogu("${pipe.namespace}/${pipe.doguName}")
-                }
+                    }
 
                 pipe.ecoSystem.startDogu(pipe.doguName)
                 pipe.ecoSystem.waitForDogu(pipe.doguName)
@@ -167,7 +164,7 @@ class IntegrationStages implements DoguStageModule {
                 pipe.ecoSystem.waitForDogu(pipe.doguName)
 
                 if (pipe.runIntegrationTests) {
-                    pipe.script.stage("Integration Tests - After Upgrade", PipelineMode.INTEGRATION) {
+                    pipe.script.stage('Integration Tests - After Upgrade', PipelineMode.INTEGRATION) {
                         pipe.ecoSystem.runCypressIntegrationTests([
                             cypressImage     : pipe.upgradeCypressImage,
                             enableVideo      : pipe.script.params.EnableVideoRecording,
@@ -185,7 +182,6 @@ class IntegrationStages implements DoguStageModule {
                     usernameVariable: 'GIT_AUTH_USR',
                     passwordVariable: 'GIT_AUTH_PSW'
                 )]) {
-
                     pipe.script.sh """
                         git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
                         git fetch origin +refs/heads/*:refs/remotes/origin/*
@@ -228,9 +224,10 @@ class IntegrationStages implements DoguStageModule {
                 pipe.notifyRelease()
             }
         } else if (pipe.gitflow.isPreReleaseBranch()) {
-            group.stage("Push Prerelease Dogu to registry") {
+            group.stage('Push Prerelease Dogu to registry') {
                 pipe.ecoSystem.pushPreRelease(pipe.doguDir)
             }
         }
     }
+
 }

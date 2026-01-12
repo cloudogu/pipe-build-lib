@@ -1,4 +1,4 @@
-package com.cloudogu.sos.pipebuildlib.dogu.stages
+package com.cloudogu.sos.pipebuildlib.stages
 
 import com.cloudogu.sos.pipebuildlib.*
 import com.cloudogu.sos.pipebuildlib.dogu.*
@@ -8,7 +8,6 @@ import com.cloudogu.ces.dogubuildlib.*
 class StaticStages implements DoguStageModule {
 
     void register(DoguPipe pipe, StageGroup group) {
-
         // literally paste your existing code here
         group.stage('Checkout', PipelineMode.STATIC) {
             pipe.checkout_updatemakefiles(pipe.updateSubmodules)
@@ -54,10 +53,10 @@ class StaticStages implements DoguStageModule {
                             returnStdout: true
                         ).trim()
                         if (!out) {
-                            pipe.script.echo "[INFO] No .sh files found; skipping shellcheck."
+                            pipe.script.echo '[INFO] No .sh files found; skipping shellcheck.'
                             return
                         }
-                        def fileList = '"' + out.replaceAll('\n','" "') + '"'
+                        def fileList = '"' + out.replaceAll('\n', '" "') + '"'
                         pipe.script.echo "[INFO] fileList ${fileList}."
                         runWith(fileList)
                     }
@@ -67,13 +66,13 @@ class StaticStages implements DoguStageModule {
         }
 
         if (pipe.config.runShellTests) {
-            group.stage("Shell Tests", PipelineMode.STATIC) {
+            group.stage('Shell Tests', PipelineMode.STATIC) {
                 executeShellTests()
             }
         }
 
         if (pipe.doBatsTests) {
-            group.stage("Bats Tests", PipelineMode.STATIC) {
+            group.stage('Bats Tests', PipelineMode.STATIC) {
                 Bats bats = new Bats(pipe.script, pipe.script.docker)
                 bats.checkAndExecuteTests()
             }
@@ -82,18 +81,18 @@ class StaticStages implements DoguStageModule {
         if (pipe.doSonarTests) {
             group.stage('SonarQube', PipelineMode.STATIC) {
                 pipe.script.sh "git config 'remote.origin.fetch' '+refs/heads/*:refs/remotes/origin/*'"
-                pipe.gitWithCredentials("fetch --all")
+                pipe.gitWithCredentials('fetch --all')
                 def currentBranch = "${pipe.script.env.BRANCH_NAME}"
 
                 def scannerHome = pipe.script.tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                 pipe.script.withSonarQubeEnv {
-                    if (currentBranch == "main") {
+                    if (currentBranch == 'main') {
                         pipe.script.sh "${scannerHome}/bin/sonar-scanner -Dsonar.branch.name=${pipe.script.env.BRANCH_NAME}"
                     }
-                    else if (currentBranch == "master") {
+                    else if (currentBranch == 'master') {
                         pipe.script.sh "${scannerHome}/bin/sonar-scanner -Dsonar.branch.name=${pipe.script.env.BRANCH_NAME}"
                     }
-                    else if (currentBranch == "develop") {
+                    else if (currentBranch == 'develop') {
                         pipe.script.sh "${scannerHome}/bin/sonar-scanner -Dsonar.branch.name=${pipe.script.env.BRANCH_NAME}"
                     }
                     else if (pipe.script.env.CHANGE_TARGET) {
@@ -107,10 +106,11 @@ class StaticStages implements DoguStageModule {
                 pipe.script.timeout(time: 2, unit: 'MINUTES') {
                     def qGate = pipe.script.waitForQualityGate()
                     if (qGate.status != 'OK') {
-                        pipe.script.unstable("Pipeline unstable due to SonarQube quality gate failure")
+                        pipe.script.unstable('Pipeline unstable due to SonarQube quality gate failure')
                     }
                 }
             }
         }
     }
+
 }

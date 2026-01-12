@@ -8,19 +8,18 @@ import com.cloudogu.ces.dogubuildlib.*
 class ReleaseStages implements DoguStageModule {
 
     void register(DoguPipe pipe, StageGroup group) {
-
         group.raw_stage('Make dogu Release', PipelineMode.RELEASE) {
             if (!allowedReleaseUsers.contains(this.jenkinsUser)) {
                 script.error("User '${this.jenkinsUser}' is not authorized to run a release!")
             }
 
             if (!script.params.ReleaseTag?.trim()) {
-                script.error("ReleaseTag must be provided in RELEASE mode!")
+                script.error('ReleaseTag must be provided in RELEASE mode!')
             }
 
             script.checkout script.scm
             script.sh "git config 'remote.origin.fetch' '+refs/heads/*:refs/remotes/origin/*'"
-            gitWithCredentials("fetch --all")
+            gitWithCredentials('fetch --all')
             if (updateSubmodules) {
                 script.sh 'git submodule update --init'
             }
@@ -61,9 +60,8 @@ class ReleaseStages implements DoguStageModule {
                     git checkout develop
                 """
 
-
-            script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
-                script.sh '''
+                script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
+                    script.sh '''
                         cat > ./git-askpass.sh <<'EOF'
 #!/bin/sh
 case "$1" in
@@ -79,8 +77,9 @@ EOF
                     yes ok
                 } | make dogu-release
             '''
-                    }
                 }
             }
+        }
     }
+
 }

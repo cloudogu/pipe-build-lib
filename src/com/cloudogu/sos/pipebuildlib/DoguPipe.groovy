@@ -70,7 +70,7 @@ class DoguPipe extends BasePipe {
         addStageGroup(this.agentVagrant) { group ->
             new IntegrationStages().register(this, group)
             new ReleaseStages().register(this, group)
-            group.stage("Clean") {
+            group.stage('Clean') {
                 ecoSystem.destroy()
             }
         }
@@ -137,7 +137,6 @@ class DoguPipe extends BasePipe {
 
         if (script.fileExists('Makefile')) {
             script.stage('Update Makefile Version') {
-
                 // sos image has already yq installed
                 // Download yq only if needed (optional)
                 script.sh '''
@@ -171,10 +170,10 @@ class DoguPipe extends BasePipe {
         String bats_tag = '1.2.1'
         def batsImage = script.docker.build("${bats_custom_image}:${bats_tag}", "--build-arg=BATS_BASE_IMAGE=${bats_base_image} --build-arg=BATS_TAG=${bats_tag} ./batsTests")
         try {
-            script.sh "mkdir -p target"
-            script.sh "mkdir -p testdir"
+            script.sh 'mkdir -p target'
+            script.sh 'mkdir -p testdir'
             batsImage.inside("--entrypoint='' -v ${script.WORKSPACE}:/workspace -v ${script.WORKSPACE}/testdir:/usr/share/webapps") {
-                script.sh "make unit-test-shell-ci"
+                script.sh 'make unit-test-shell-ci'
             }
         } finally {
             script.junit allowEmptyResults: true, testResults: 'target/shell_test_reports/*.xml'
@@ -210,11 +209,11 @@ class DoguPipe extends BasePipe {
                     validResponseCodes: '200'
                 )
                 def json = new groovy.json.JsonSlurper().parseText(response.content)
-                return json.tag_name ?: "unknown"
+                return json.tag_name ?: 'unknown'
             }
         } catch (Exception e) {
             script.echo "Failed to fetch release version: ${e}"
-            return "unknown"
+            return 'unknown'
         }
     }
 
@@ -223,8 +222,8 @@ class DoguPipe extends BasePipe {
     }
 
     private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
-        String tag = "unknown"
-        String repoName = doguName == "easyredmine" ? "${doguName}-itz" : doguName
+        String tag = 'unknown'
+        String repoName = doguName == 'easyredmine' ? "${doguName}-itz" : doguName
 
         script.node {
             script.withCredentials([script.usernamePassword(
@@ -232,7 +231,7 @@ class DoguPipe extends BasePipe {
                 usernameVariable: 'GIT_AUTH_USR',
                 passwordVariable: 'GIT_AUTH_PSW'
             )]) {
-                script.sh "rm -rf repo && mkdir repo"
+                script.sh 'rm -rf repo && mkdir repo'
                 script.dir('repo') {
                     script.sh """
                         git clone https://${'$'}GIT_AUTH_USR:${'$'}GIT_AUTH_PSW@github.com/cloudogu/${repoName}.git .
@@ -288,4 +287,5 @@ class DoguPipe extends BasePipe {
             enableScreenshots: script.params.EnableScreenshotRecording
         ])
     }
+
 }
