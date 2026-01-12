@@ -1,4 +1,4 @@
-package com.cloudogu.sos.pipebuildlib
+package com.cloudogu.sos.pipebuildlib.dogu
 
 import com.cloudogu.sos.pipebuildlib.dogu.stages.StaticStages
 import com.cloudogu.sos.pipebuildlib.dogu.stages.IntegrationStages
