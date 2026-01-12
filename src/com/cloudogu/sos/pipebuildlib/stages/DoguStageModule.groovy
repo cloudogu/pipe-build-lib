@@ -1,4 +1,4 @@
-package com.cloudogu.sos.pipebuildlib.stages
+package com.cloudogu.sos.pipebuildlib
 
 interface DoguStageModule {
     void register(DoguPipe pipe, StageGroup group)
