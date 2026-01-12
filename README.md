@@ -85,6 +85,12 @@ This means:
 group.stage("Build", PipelineMode.INTEGRATION) { ... }
 ```
 
+If you don't want that behavior you can use:
+
+```groovy
+group.raw_stage("Build", PipelineMode.RELEASE) { ... }
+```
+
 ---
 
 ##  DoguPipe
