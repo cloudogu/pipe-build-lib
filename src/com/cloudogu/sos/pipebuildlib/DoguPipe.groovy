@@ -10,7 +10,7 @@ import com.cloudogu.ces.dogubuildlib.*
 
 class DoguPipe extends BasePipe {
 
-    Map config
+    final DoguConfig config
 
     DoguPipe(script, Map raw) {
         super(script)
