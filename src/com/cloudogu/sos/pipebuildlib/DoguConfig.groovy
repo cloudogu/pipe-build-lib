@@ -54,7 +54,6 @@ class DoguConfig {
     String jenkinsUser
 
     DoguConfig(script, Map config) {
-        super(script)
         this.config = config
 
         // config map vars
