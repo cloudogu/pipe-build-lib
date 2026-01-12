@@ -96,14 +96,63 @@ group.stage("Build", PipelineMode.INTEGRATION) { ... }
 DoguPipe(script, Map config)
 ```
 
-### Components
-- Git, GitFlow, GitHub, EcoSystem, Vagrant, Markdown
-- Customizable through the `config` map.
-
 ### Main Method
 
 #### `addDefaultStages()`
-Adds a full set of predefined build/test/release stages.
+
+Registers all built-in **Dogu Stage Modules** into agent-scoped `StageGroup`s.
+
+Instead of hardcoding stages, `addDefaultStages()` composes the pipeline by loading
+independent **stage modules** that each contribute their own stages:
+
+| Module | Responsibility |
+|-------|----------------|
+| `StaticStages` | Linting, shellcheck, markdown, Sonar, unit tests |
+| `IntegrationStages` | Provisioning, setup, build, Trivy, integration tests |
+| `MultinodeStages` | Multi-VM / multi-cluster integration tests |
+| `ReleaseStages` | Triggers the gitflow via pipeline when Integration Mode is RELEASE |
+
+Internally this looks like:
+
+```groovy
+addStageGroup(agentStatic)   { new StaticStages().register(this, it) }
+addStageGroup(agentVagrant) { new IntegrationStages().register(this, it) }
+addStageGroup(agentVagrant) { new ReleaseStages().register(this, it) }
+addStageGroup(agentMultinode){ new MultinodeStages().register(this, it) }
+```
+
+#### `DoguConfig`
+
+`DoguConfig` is the compiled, runtime-ready configuration for a Dogu pipeline.
+It takes the raw Jenkinsfile config map, applies defaults and normalization,
+instantiates all required build systems (Git, EcoSystem, Docker, Vagrant, etc.),
+and injects pipeline-specific helpers into them so that the pipeline runs in a
+fully initialized, self-contained build environment.
+
+In addition, `DoguPipe` transparently exposes all properties of `DoguConfig`
+via Groovy’s `propertyMissing` mechanism.
+
+This means:
+
+```groovy
+pipe.ecoSystem
+pipe.git
+pipe.cypressImage
+pipe.runIntegrationTests
+```
+
+```groovy
+pipe.config.ecoSystem
+pipe.config.git
+pipe.config.cypressImage
+pipe.config.runIntegrationTests
+```
+
+but without the caller needing to know or care that a DoguConfig object exists.
+
+This makes DoguPipe behave like a live view of the pipeline configuration
+while still keeping all configuration, defaults, and runtime wiring isolated
+inside DoguConfig.
 
 ### Additional Utilities
 
