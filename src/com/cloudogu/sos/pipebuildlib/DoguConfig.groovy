@@ -86,7 +86,7 @@ class DoguConfig {
         this.doSonarTests           = config.doSonarTests ?: false
         this.releaseWebhookUrlSecret= config.releaseWebhookUrlSecret ?: "sos-sw-release-webhook-url"
         this.checkEOL               = config.checkEOL ?: true
-        this.checkMarkdown          = config.checkMarkdown? : false
+        this.checkMarkdown          = config.checkMarkdown ? : false
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
