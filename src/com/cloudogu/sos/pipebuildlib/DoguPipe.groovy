@@ -7,7 +7,18 @@ import com.cloudogu.sos.pipebuildlib.dogu.stages.*
 import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
 
+/**
+ * DoguPipe is the orchestration layer of the Dogu pipeline: it binds the Jenkins
+ * runtime (`script`) to a fully initialized DoguConfig and composes the pipeline
+ * by assembling independent stage modules (Static, Integration, Multinode, Release)
+ * into agent-scoped execution groups, while also exposing shared utilities and
+ * Jenkins job configuration for all stages.
+ */
 class DoguPipe extends BasePipe {
+
+// ============================================================================
+//  Construction & Core Wiring
+// ============================================================================
 
     final DoguConfig config
 
@@ -15,6 +26,10 @@ class DoguPipe extends BasePipe {
         super(script)
         this.config = new DoguConfig(script, raw)
     }
+
+// ============================================================================
+//  Groovy Property Forwarding (DoguConfig → DoguPipe)
+// ============================================================================
 
     // Transparenter Zugriff: dogu.ecoSystem → config.ecoSystem
     def propertyMissing(String name) {
@@ -32,6 +47,10 @@ class DoguPipe extends BasePipe {
         }
         throw new MissingPropertyException(name, this.class)
     }
+
+// ============================================================================
+//  Pipeline Orchestration
+// ============================================================================
 
     @Override
     void addDefaultStages() {
@@ -56,6 +75,10 @@ class DoguPipe extends BasePipe {
             }
         }
     }
+
+// ============================================================================
+//  Jenkins Job / Parameter Setup
+// ============================================================================
 
     @Override
     void setBuildProperties(List<hudson.model.ParameterDefinition> customParams = null) {
@@ -101,6 +124,10 @@ class DoguPipe extends BasePipe {
             script.parameters(customParams ?: defaultParams)
         ])
     }
+
+// ============================================================================
+// Utilities
+// ============================================================================
 
     void checkout_updatemakefiles(boolean updateSubmodules) {
         script.checkout script.scm

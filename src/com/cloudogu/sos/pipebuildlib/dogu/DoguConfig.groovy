@@ -3,6 +3,13 @@ package com.cloudogu.sos.pipebuildlib.dogu
 import com.cloudogu.ces.cesbuildlib.*
 import com.cloudogu.ces.dogubuildlib.*
 
+/**
+ * DoguConfig is the compiled, runtime-ready configuration for a Dogu pipeline:
+ * it takes the raw Jenkinsfile config map, applies defaults and normalization,
+ * instantiates all required build systems (Git, EcoSystem, Docker, Vagrant, etc.),
+ * and injects pipeline-specific helpers into them so that DoguPipe and all stage
+ * modules operate on a fully initialized, self-contained build environment.
+ */
 class DoguConfig {
 
     EcoSystem ecoSystem

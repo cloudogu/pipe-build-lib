@@ -58,19 +58,6 @@ Groups all added stages by their agent and:
 
 ---
 
-###  Helpers
-
-#### `normalizeStageName(String name)`
-Strips spaces and lowercases stage name for comparison.
-
-#### `hasStage(String name)`
-Returns whether a stage exists.
-
-#### `findStage(String name)`
-Returns the `StageDefinition` instance by name.
-
----
-
 ##  StageDefinition
 
 Found in `StageDefinition.groovy`, used to represent each stage:
@@ -85,6 +72,20 @@ class StageDefinition {
 ```
 
 ---
+
+### Default `PipelineMode.FULL` Behavior
+
+All stages added via `StageGroup.stage(...)` are **implicitly executed in `PipelineMode.FULL`**.
+
+This means:
+- Any stage registered with `stage(...)` will **always run** when the pipeline is executed in `FULL` mode
+- Even if you specify a different `PipelineMode`, `FULL` is automatically added
+
+```groovy
+group.stage("Build", PipelineMode.INTEGRATION) { ... }
+
+---
+
 
 ##  DoguPipe
 
@@ -228,5 +229,57 @@ pipe.insertStageAfter("Integration Tests", "Test: Change Global Admin Group", {
 
 
 // Run the pipeline – this will execute all previously added stages
+pipe.run()
+```
+### Full Example Usage in Jenkins with custom stage and overriding
+```groovy
+@Library([
+  'pipe-build-lib',
+  'ces-build-lib',
+  'dogu-build-lib'
+]) _
+
+def pipe = new com.cloudogu.sos.pipebuildlib.DoguPipe(this, [
+    doguName           : "portainer",
+    shellScripts       : "./resources/startup.sh",
+    checkMarkdown      : true,
+    doBatsTests        : true,
+    runIntegrationTests: true,
+    doSonarTests       : true
+
+])
+
+pipe.setBuildProperties()
+pipe.addDefaultStages()
+
+pipe.insertStageAfter("Bats Tests","build & test carp") {
+    def ctx = pipe.script
+    new com.cloudogu.ces.cesbuildlib.Docker(ctx)
+        .image('golang:1.23')
+        .mountJenkinsUser()
+        .inside('-e ENVIRONMENT=ci')
+    {
+            ctx.sh 'make carp-clean'
+            ctx.sh 'make build-carp'
+            ctx.sh 'make carp-unit-test'
+    }
+}
+
+pipe.overrideStage("Integration tests")
+{
+    com.cloudogu.ces.dogubuildlib.EcoSystem eco = pipe.ecoSystem
+    eco.runCypressIntegrationTests([        enableVideo      : params.EnableVideoRecording,
+                                            enableScreenshots: params.EnableScreenshotRecording,
+                                            cypressImage: pipe.cypressImage])
+    // Test special case with restricted access
+    eco.vagrant.ssh "sudo etcdctl set /config/portainer/user_access_restricted true"
+    eco.restartDogu(pipe.doguName)
+    eco.runCypressIntegrationTests([        enableVideo      : params.EnableVideoRecording,
+                                            enableScreenshots: params.EnableScreenshotRecording,
+                                            cypressImage: pipe.cypressImage,
+                                            additionalCypressArgs:
+                                            "--config '{\"excludeSpecPattern\": [\"cypress/e2e/dogu_integration_test_lib/*\"]}'"])
+}
+
 pipe.run()
 ```
