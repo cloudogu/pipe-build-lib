@@ -204,7 +204,7 @@ pipe.run()
 >
 > ```groovy
 > // ❌ Will fail if ces-build-lib is not imported
-> new com.cloudogu.ces.cesbuildlib.Docker(this)
+> new Docker(this)
 > ```
 >
 > And this is the correct way:
@@ -212,9 +212,8 @@ pipe.run()
 > ```groovy
 > @Library(['pipe-build-lib', 'ces-build-lib', 'dogu-build-lib']) _
 >
-> import com.cloudogu.ces.cesbuildlib.Docker
+> new com.cloudogu.ces.cesbuildlib.Docker(this)
 >
-> new Docker(this)
 > ```
 >
 > Even though the class has a fully-qualified name, **Jenkins will not load it unless the library is explicitly imported**.
@@ -257,7 +256,7 @@ agent**.
 ### Why this exists
 
 Some parts of a Dogu build: - Must share a workspace (same agent) - Must
-not run in parallel (race conditions) - Need powerful machines (Vagrant,
+not run in parallel (race conditions) - Need more powerful machines (Vagrant,
 Docker, GCP)
 
 Other parts: - Are safe to run independently - Should run in parallel to
