@@ -211,7 +211,7 @@ pipe.run()
 >
 > ```groovy
 > @Library(['pipe-build-lib', 'ces-build-lib', 'dogu-build-lib']) _
->
+> // full path required!
 > new com.cloudogu.ces.cesbuildlib.Docker(this)
 >
 > ```
@@ -363,7 +363,7 @@ pipe.insertStageAfter("Integration Tests", "Test: Change Global Admin Group", {
 // Run the pipeline – this will execute all previously added stages
 pipe.run()
 ```
-### Full Example Usage in Jenkins with custom stage and overriding
+### Full Example Usage in Jenkins with custom stage and overriding and class usage of shared library
 ```groovy
 @Library([
   'pipe-build-lib',
@@ -384,6 +384,9 @@ def pipe = new com.cloudogu.sos.pipebuildlib.DoguPipe(this, [
 pipe.setBuildProperties()
 pipe.addDefaultStages()
 
+// Get ecosystem object from pipe-build-lib initiated by the pipe-build-lib 
+com.cloudogu.ces.dogubuildlib.EcoSystem eco = pipe.ecoSystem
+
 pipe.insertStageAfter("Bats Tests","build & test carp") {
     def ctx = pipe.script
     new com.cloudogu.ces.cesbuildlib.Docker(ctx)
@@ -399,7 +402,6 @@ pipe.insertStageAfter("Bats Tests","build & test carp") {
 
 pipe.overrideStage("Integration tests")
 {
-    com.cloudogu.ces.dogubuildlib.EcoSystem eco = pipe.ecoSystem
     eco.runCypressIntegrationTests([        enableVideo      : params.EnableVideoRecording,
                                             enableScreenshots: params.EnableScreenshotRecording,
                                             cypressImage: pipe.cypressImage])
