@@ -1,6 +1,7 @@
 package com.cloudogu.sos.pipebuildlib
 
 class StageDefinition implements Serializable {
+
     String name
     Set<PipelineMode> modes = []
     Closure block
@@ -14,5 +15,6 @@ class StageDefinition implements Serializable {
         this.modes = modes
         this.block = block
     }
+
 }
 
