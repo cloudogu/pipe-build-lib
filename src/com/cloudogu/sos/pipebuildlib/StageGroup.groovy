@@ -1,6 +1,7 @@
 package com.cloudogu.sos.pipebuildlib
 
 class StageGroup implements Serializable {
+
     String agentLabel
     List<StageDefinition> stages = []
     Set<PipelineMode> defaultModes = [PipelineMode.FULL]
@@ -26,4 +27,5 @@ class StageGroup implements Serializable {
         finalModes.add(PipelineMode.FULL)
         stages << new StageDefinition(name, finalModes, block)
     }
+
 }

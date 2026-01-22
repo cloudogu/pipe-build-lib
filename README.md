@@ -49,25 +49,12 @@ Assigns multiple stages to different agents using a map.
 
 ---
 
-### ▶️ Execution
+### Execution
 
 #### `run()`
 Groups all added stages by their agent and:
 - Executes sequential and parallel stages on the appropriate agents.
 - Handles empty scripts or stage lists gracefully with debug logs.
-
----
-
-###  Helpers
-
-#### `normalizeStageName(String name)`
-Strips spaces and lowercases stage name for comparison.
-
-#### `hasStage(String name)`
-Returns whether a stage exists.
-
-#### `findStage(String name)`
-Returns the `StageDefinition` instance by name.
 
 ---
 
@@ -86,6 +73,26 @@ class StageDefinition {
 
 ---
 
+### Default `PipelineMode.FULL` Behavior
+
+All stages added via `StageGroup.stage(...)` are **implicitly executed in `PipelineMode.FULL`**.
+
+This means:
+- Any stage registered with `stage(...)` will **always run** when the pipeline is executed in `FULL` mode
+- Even if you specify a different `PipelineMode`, `FULL` is automatically added
+
+```groovy
+group.stage("Build", PipelineMode.INTEGRATION) { ... }
+```
+
+If you don't want that behavior you can use:
+
+```groovy
+group.raw_stage("Build", PipelineMode.RELEASE) { ... }
+```
+
+---
+
 ##  DoguPipe
 
 `DoguPipe.groovy` is a concrete subclass of `BasePipe` tailored to build and release **Dogu** containers.
@@ -95,14 +102,63 @@ class StageDefinition {
 DoguPipe(script, Map config)
 ```
 
-### Components
-- Git, GitFlow, GitHub, EcoSystem, Vagrant, Markdown
-- Customizable through the `config` map.
-
 ### Main Method
 
 #### `addDefaultStages()`
-Adds a full set of predefined build/test/release stages.
+
+Registers all built-in **Dogu Stage Modules** into agent-scoped `StageGroup`s.
+
+Instead of hardcoding stages, `addDefaultStages()` composes the pipeline by loading
+independent **stage modules** that each contribute their own stages:
+
+| Module | Responsibility |
+|-------|----------------|
+| `StaticStages` | Linting, shellcheck, markdown, Sonar, unit tests |
+| `IntegrationStages` | Provisioning, setup, build, Trivy, integration tests |
+| `MultinodeStages` | Multi-VM / multi-cluster integration tests |
+| `ReleaseStages` | Triggers the gitflow via pipeline when Integration Mode is RELEASE |
+
+Internally this looks like:
+
+```groovy
+addStageGroup(agentStatic)   { new StaticStages().register(this, it) }
+addStageGroup(agentVagrant) { new IntegrationStages().register(this, it) }
+addStageGroup(agentVagrant) { new ReleaseStages().register(this, it) }
+addStageGroup(agentMultinode){ new MultinodeStages().register(this, it) }
+```
+
+#### `DoguConfig`
+
+`DoguConfig` is the compiled, runtime-ready configuration for a Dogu pipeline.
+It takes the raw Jenkinsfile config map, applies defaults and normalization,
+instantiates all required build systems (Git, EcoSystem, Docker, Vagrant, etc.),
+and injects pipeline-specific helpers into them so that the pipeline runs in a
+fully initialized, self-contained build environment.
+
+In addition, `DoguPipe` transparently exposes all properties of `DoguConfig`
+via Groovy’s `propertyMissing` mechanism.
+
+This means:
+
+```groovy
+pipe.ecoSystem
+pipe.git
+pipe.cypressImage
+pipe.runIntegrationTests
+```
+
+```groovy
+pipe.config.ecoSystem
+pipe.config.git
+pipe.config.cypressImage
+pipe.config.runIntegrationTests
+```
+
+but without the caller needing to know or care that a DoguConfig object exists.
+
+This makes DoguPipe behave like a live view of the pipeline configuration
+while still keeping all configuration, defaults, and runtime wiring isolated
+inside DoguConfig.
 
 ### Additional Utilities
 
@@ -113,7 +169,7 @@ Adds a full set of predefined build/test/release stages.
 
 ---
 
-## ⚙️ Usage in Jenkinsfile
+## Basic Usage in Jenkinsfile
 
 ```groovy
 @Library('pipebuildlib') _
@@ -135,10 +191,87 @@ pipe.run()
 ##  Notes
 
 - Default agent label is `"sos"` if not specified.
-- Stages with the same agent can be grouped and run in parallel.
-- Ensure your `Jenkinsfile` has access to the `@Library` and the script context (`this`) is passed correctly.
+
+> **Library versioning & class resolution**
+>
+> The versions of `pipe-build-lib`, `ces-build-lib`, and `dogu-build-lib` are **not defined in the Jenkinsfile**.  
+> They are resolved by Jenkins via **Manage Jenkins → Global Pipeline Libraries**, which pins each library to a specific Git ref (branch, tag, or commit).
+>
+> Jenkins loads each shared library into its **own classloader**.  
+> Because of this, **classes from another library are *not visible* unless they are imported**.
+>
+> That means this will crash:
+>
+> ```groovy
+> // ❌ Will fail if ces-build-lib is not imported
+> new Docker(this)
+> ```
+>
+> And this is the correct way:
+>
+> ```groovy
+> @Library(['pipe-build-lib', 'ces-build-lib', 'dogu-build-lib']) _
+> // full path required!
+> new com.cloudogu.ces.cesbuildlib.Docker(this)
+>
+> ```
+>
+> Even though the class has a fully-qualified name, **Jenkins will not load it unless the library is explicitly imported**.
+> Fully-qualified names avoid ambiguity, but they do not bypass Jenkins’ library isolation.
 
 ---
+
+
+## 🖥 Agent-Based Stage Groups
+
+Stages in PipeBuildLib are not executed individually --- they are
+grouped into **StageGroups**, and each group is bound to a specific
+**Jenkins agent label**.
+
+``` groovy
+addStageGroup(agentStatic) { group -> ... }
+addStageGroup(agentVagrant) { group -> ... }
+addStageGroup(agentMultinode) { group -> ... }
+```
+
+Each `StageGroup` represents **one execution lane on one Jenkins
+agent**.
+
+### Execution Model
+
+  -----------------------------------------------------------------------
+  Scenario                 What happens
+  ------------------------ ----------------------------------------------
+  Two groups with          Run in **parallel** on different machines
+  **different agent        
+  labels**                 
+
+  Two groups with the      Run **sequentially** on the same machine
+  **same agent label**     
+
+  Multiple stages inside   Run in the order they were registered
+  one group                
+  -----------------------------------------------------------------------
+
+### Why this exists
+
+Some parts of a Dogu build: - Must share a workspace (same agent) - Must
+not run in parallel (race conditions) - Need more powerful machines (Vagrant,
+Docker, GCP)
+
+Other parts: - Are safe to run independently - Should run in parallel to
+save time
+
+`StageGroup` encodes that **infrastructure intent** directly into the
+pipeline.
+
+### Mental Model
+
+Think of a `StageGroup` as:
+
+> "A queue of stages that must run on the same machine."
+
+Different queues → different machines → parallel execution.
 
 ## Usage Examples
 
@@ -229,4 +362,134 @@ pipe.insertStageAfter("Integration Tests", "Test: Change Global Admin Group", {
 
 // Run the pipeline – this will execute all previously added stages
 pipe.run()
+```
+### Full Example Usage in Jenkins with custom stage and overriding and class usage of shared library
+```groovy
+@Library([
+  'pipe-build-lib',
+  'ces-build-lib',
+  'dogu-build-lib'
+]) _
+
+def pipe = new com.cloudogu.sos.pipebuildlib.DoguPipe(this, [
+    doguName           : "portainer",
+    shellScripts       : "./resources/startup.sh",
+    checkMarkdown      : true,
+    doBatsTests        : true,
+    runIntegrationTests: true,
+    doSonarTests       : true
+
+])
+
+pipe.setBuildProperties()
+pipe.addDefaultStages()
+
+// Get ecosystem object from pipe-build-lib initiated by the pipe-build-lib 
+com.cloudogu.ces.dogubuildlib.EcoSystem eco = pipe.ecoSystem
+
+pipe.insertStageAfter("Bats Tests","build & test carp") {
+    def ctx = pipe.script
+    new com.cloudogu.ces.cesbuildlib.Docker(ctx)
+        .image('golang:1.23')
+        .mountJenkinsUser()
+        .inside('-e ENVIRONMENT=ci')
+    {
+            ctx.sh 'make carp-clean'
+            ctx.sh 'make build-carp'
+            ctx.sh 'make carp-unit-test'
+    }
+}
+
+pipe.overrideStage("Integration tests")
+{
+    eco.runCypressIntegrationTests([        enableVideo      : params.EnableVideoRecording,
+                                            enableScreenshots: params.EnableScreenshotRecording,
+                                            cypressImage: pipe.cypressImage])
+    // Test special case with restricted access
+    eco.vagrant.ssh "sudo etcdctl set /config/portainer/user_access_restricted true"
+    eco.restartDogu(pipe.doguName)
+    eco.runCypressIntegrationTests([        enableVideo      : params.EnableVideoRecording,
+                                            enableScreenshots: params.EnableScreenshotRecording,
+                                            cypressImage: pipe.cypressImage,
+                                            additionalCypressArgs:
+                                            "--config '{\"excludeSpecPattern\": [\"cypress/e2e/dogu_integration_test_lib/*\"]}'"])
+}
+
+pipe.run()
+```
+
+### Full Example Usage in Jenkins with overriding
+
+```groovy
+#!groovy
+@Library([
+  'pipe-build-lib',
+  'ces-build-lib',
+  'dogu-build-lib'
+]) _
+
+def pipe = new com.cloudogu.sos.pipebuildlib.DoguPipe(this, [
+    doguName           : 'redmine',
+    shellScripts       : ['''
+                          resources/startup.sh
+                          resources/post-upgrade.sh
+                          resources/pre-upgrade.sh
+                          resources/util.sh
+                          resources/upgrade-notification.sh
+                          resources/default-config.sh
+                          resources/update-password-policy.sh
+                          resources/util.sh
+                          resources/delete-plugin.sh
+                          '''],
+    dependencies       : ['cas', 'usermgt', 'postgresql'],
+    doBatsTests        : true,
+    runIntegrationTests: true,
+    cypressImage       : "cypress/included:13.14.2"
+])
+com.cloudogu.ces.dogubuildlib.EcoSystem ecoSystem = pipe.ecoSystem
+
+pipe.setBuildProperties()
+pipe.addDefaultStages()
+pipe.overrideStage('Setup') {
+  ecoSystem.loginBackend('cesmarvin-setup')
+  ecoSystem.setup([additionalDependencies: ['official/postgresql']])
+}
+
+pipe.run()
+```
+
+
+### Additional Dogu Dependencies Setup Stage
+
+
+```groovy
+pipe.overrideStage('Setup') {
+    ecoSystem.loginBackend('cesmarvin-setup')
+    def settingsJson = '{"custom_menu_entries":[{"name":"Handbuch \uD83D\uDD17","url":"https://docs.cloudogu.com/de/usermanual/easyredmine/er12/1_administrators_checklist/","icon":"icon-help"}]}'
+    def escapedSettings = settingsJson.replaceAll('"', '\\\\"')
+
+    ecoSystem.setup([
+        additionalDependencies: ['official/mysql', 'official/redis'],
+        // setting custom menu entry for docs
+        registryConfig: """
+            "easyredmine": {
+                "logging": {
+                    "root": "ERROR"
+                },
+                "default_data": {
+                    "usertype_settings": "${escapedSettings}"
+                }
+            },
+            "_global": {
+                "password-policy": {
+                    "must_contain_capital_letter": "false",
+                    "must_contain_lower_case_letter": "true",
+                    "must_contain_digit": "true",
+                    "must_contain_special_character": "false",
+                    "min_length": "1"
+                }
+            }
+        """
+    ])
+}
 ```
