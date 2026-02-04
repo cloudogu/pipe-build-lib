@@ -14,9 +14,10 @@ class MultinodeStages implements DoguStageModule {
 
         group.raw_stage('MN-Setup', PipelineMode.INTEGRATIONMULTINODE) {
             def defaultSetupConfig = [
-                clustername        : pipe.script.params.ClusterName,
-                additionalDogus    : [],
-                additionalComponents: []
+                clustername           : pipe.script.params.ClusterName,
+                additionalDogus       : [],
+                additionalComponents  : [],
+                nodeCount             : pipe.nodeCount
             ]
 
             pipe.additionalDogus.each { d ->

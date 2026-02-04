@@ -96,6 +96,7 @@ class DoguConfig {
         this.checkEOL               = config.checkEOL ?: true
         this.checkMarkdown          = config.checkMarkdown ?: false
         this.runShellTests          = config.runShellTests ?: false
+        this.nodeCount              = config.nodeCount ?: "1"
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
