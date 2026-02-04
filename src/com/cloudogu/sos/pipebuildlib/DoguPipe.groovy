@@ -132,7 +132,10 @@ class DoguPipe extends BasePipe {
     void checkout_updatemakefiles(boolean updateSubmodules) {
         script.checkout script.scm
         if (updateSubmodules) {
-            script.sh 'git submodule update --init'
+            script.sh "sed -i 's|git@github.com:cloudogu/glauth.git|https://github.com/cloudogu/glauth.git|g' .gitmodules"
+            git.executeGitWithCredentials('submodule sync')
+            // Get submodule in "app" directory
+            git.executeGitWithCredentials('submodule update --init --recursive')
         }
 
         if (script.fileExists('Makefile')) {
