@@ -45,7 +45,7 @@ class DoguConfig {
     boolean checkMarkdown
     boolean runShellTests
     String latestTag = ""
-    String nodecount = "1"
+    String nodeCount = "1"
 
     String gitUserName
     String committerEmail
