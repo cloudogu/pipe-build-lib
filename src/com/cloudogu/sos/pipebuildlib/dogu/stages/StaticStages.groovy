@@ -9,7 +9,7 @@ class StaticStages implements DoguStageModule {
 
     void register(DoguPipe pipe, StageGroup group) {
         // literally paste your existing code here
-        group.stage('Checkout', PipelineMode.STATIC) {
+        group.stage('Checkout Static', PipelineMode.STATIC) {
             pipe.checkout_updatemakefiles(pipe.updateSubmodules)
         }
 

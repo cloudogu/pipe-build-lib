@@ -170,7 +170,7 @@ Vagrant.configure(2) do |config|
     google.machine_type = "${machineType}"
     google.disk_type = "pd-ssd"
     # preemptible
-    google.preemptible = true
+    google.preemptible = false
     google.auto_restart = false
     google.on_host_maintenance = "TERMINATE"
 
