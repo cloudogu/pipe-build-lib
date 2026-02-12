@@ -17,6 +17,7 @@ class DoguConfig {
     Git git
     GitFlow gitflow
     GitHub github
+    String repoName
     Docker docker
     Changelog changelog
     Vagrant vagrant
@@ -97,6 +98,7 @@ class DoguConfig {
         this.checkEOL               = config.checkEOL ?: true
         this.checkMarkdown          = config.checkMarkdown ?: false
         this.runShellTests          = config.runShellTests ?: false
+        this.repoName               = config.repoName ?: this.doguName
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
