@@ -194,12 +194,10 @@ class DoguPipe extends BasePipe {
     }
 
     String fetchLatestGithubRelease(String doguName) {
-        String repoName = '';
+        String repoName = doguName;
+
         if(this.config.repoName){
             repoName = this.config.repoName
-        }
-        else {
-            repoName = doguName
         }
 
         def githubApiUrl = "https://api.github.com/repos/cloudogu/${repoName}/releases/latest"
