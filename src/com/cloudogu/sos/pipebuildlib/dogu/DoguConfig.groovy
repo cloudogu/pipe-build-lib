@@ -21,6 +21,7 @@ class DoguConfig {
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
+    Makefile makefile
     Map config
 
     String doguName
@@ -106,6 +107,7 @@ class DoguConfig {
         github = new GitHub(script, git)
         docker = new Docker(script)
         changelog = new Changelog(script)
+        makefile = new Makefile(script)
 
         script.echo "[INFO] Init ecosystem object"
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
