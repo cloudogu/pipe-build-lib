@@ -7,11 +7,38 @@
   <groupId>com.cloudogu.sos</groupId>
   <artifactId>pipe-build-lib</artifactId>
   <name>pipe-build-lib</name>
-  <version>1.0.4</version>
+  <version>1.4.0-SNAPSHOT</version>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
+  <dependencies>
+    <dependency>
+      <!--
+       git clone https://github.com/cloudogu/ces-build-lib.git
+       cd ces-build-lib
+       git checkout 5.1.0
+       mvn install -DskipTests
+       -->
+      <groupId>com.cloudogu.ces</groupId>
+      <artifactId>ces-build-lib</artifactId>
+      <version>5.1.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <!--
+       git clone https://github.com/cloudogu/dogu-build-lib.git
+       cd dogu-build-lib
+       git checkout v3.5.1
+       mvn install -DskipTests # jdk 8 required
+       -->
+      <groupId>com.cloudogu.ces</groupId>
+      <artifactId>dogu-build-lib</artifactId>
+      <version>3.5.1</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <sourceDirectory>src</sourceDirectory>

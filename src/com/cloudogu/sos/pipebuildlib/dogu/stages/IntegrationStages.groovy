@@ -10,6 +10,8 @@ class IntegrationStages implements DoguStageModule {
     void register(DoguPipe pipe, StageGroup group) {
         String releaseTargetBranch = ''
         String releaseVersion = ''
+        String productionReleaseBranch = ''
+        String developmentBranch = ''
 
         group.stage('Checkout', PipelineMode.INTEGRATION) {
             pipe.checkout_updatemakefiles(pipe.updateSubmodules)
@@ -176,36 +178,12 @@ class IntegrationStages implements DoguStageModule {
         }
 
         if (pipe.gitflow.isReleaseBranch()) {
-            group.stage('Retrieving Release Branch') {
-                pipe.script.withCredentials([pipe.script.usernamePassword(
-                    credentialsId: pipe.gitUserName,
-                    usernameVariable: 'GIT_AUTH_USR',
-                    passwordVariable: 'GIT_AUTH_PSW'
-                )]) {
-                    pipe.script.sh """
-                        git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
-                        git fetch origin +refs/heads/*:refs/remotes/origin/*
-
-                        release_target=\$(if git show-ref --verify --quiet refs/remotes/origin/main; then
-                            echo main
-                        elif git show-ref --verify --quiet refs/remotes/origin/master; then
-                            echo master
-                        else
-                            exit 1
-                        fi)
-
-                        echo "\$release_target" > release_target.txt
-                    """
-
-                    releaseVersion = pipe.git.getSimpleBranchName()
-                    releaseTargetBranch = pipe.script.readFile('release_target.txt').trim()
-                    pipe.script.echo "[DEBUG] release branch: ${releaseTargetBranch}"
-                }
-            }
-
             group.stage('Finish Release') {
                 // Optionally, target branch can be provided (default "main")
-                pipe.gitflow.finishRelease(releaseVersion, releaseTargetBranch)
+                releaseVersion = pipe.git.getSimpleBranchName()
+                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch()
+                developmentBranch = pipe.makefile.determineGitFlowDevelopBranch()
+                pipe.gitflow.finishRelease(releaseVersion, productionReleaseBranch, developmentBranch)
             }
 
             group.stage('Push Dogu to registry') {
@@ -213,6 +191,8 @@ class IntegrationStages implements DoguStageModule {
             }
 
             group.stage('Add Github-Release') {
+                releaseVersion = pipe.git.getSimpleBranchName()
+                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch()
                 pipe.github.createReleaseWithChangelog(
                     releaseVersion,
                     pipe.changelog,
