@@ -10,6 +10,8 @@ class IntegrationStages implements DoguStageModule {
     void register(DoguPipe pipe, StageGroup group) {
         String releaseTargetBranch = ''
         String releaseVersion = ''
+        String productionReleaseBranch = ''
+        String developmentBranch = ''
 
         group.stage('Checkout', PipelineMode.INTEGRATION) {
             pipe.checkout_updatemakefiles(pipe.updateSubmodules)
