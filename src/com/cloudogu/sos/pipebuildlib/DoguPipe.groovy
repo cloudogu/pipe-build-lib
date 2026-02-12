@@ -194,7 +194,15 @@ class DoguPipe extends BasePipe {
     }
 
     String fetchLatestGithubRelease(String doguName) {
-        def githubApiUrl = "https://api.github.com/repos/cloudogu/${doguName}/releases/latest"
+        String repoName = '';
+        if(this.config.repoName){
+            repoName = this.config.repoName
+        }
+        else {
+            repoName = doguName
+        }
+
+        def githubApiUrl = "https://api.github.com/repos/cloudogu/${repoName}/releases/latest"
 
         try {
             script.withCredentials([script.usernamePassword(
@@ -227,7 +235,12 @@ class DoguPipe extends BasePipe {
 
     private static String fetchLatestTagInNode(def script, String gitUserName, String doguName) {
         String tag = 'unknown'
-        String repoName = doguName == 'easyredmine' ? "${doguName}-itz" : doguName
+        String repoName = '';
+        if(this.config.repoName){
+            repoName = this.config.repoName
+        }else {
+            repoName = doguName == 'easyredmine' ? "${doguName}-itz" : doguName
+        }
 
         script.node {
             script.withCredentials([script.usernamePassword(
