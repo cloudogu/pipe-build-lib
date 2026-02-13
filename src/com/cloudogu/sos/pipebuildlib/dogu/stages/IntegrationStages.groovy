@@ -181,7 +181,7 @@ class IntegrationStages implements DoguStageModule {
             group.stage('Finish Release') {
                 // Optionally, target branch can be provided (default "main")
                 releaseVersion = pipe.git.getSimpleBranchName()
-                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch()
+                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch(pipe.defaultBranch)
                 developmentBranch = pipe.makefile.determineGitFlowDevelopBranch()
                 pipe.gitflow.finishRelease(releaseVersion, productionReleaseBranch, developmentBranch)
             }
@@ -192,7 +192,7 @@ class IntegrationStages implements DoguStageModule {
 
             group.stage('Add Github-Release') {
                 releaseVersion = pipe.git.getSimpleBranchName()
-                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch()
+                productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch(pipe.defaultBranch)
                 pipe.github.createReleaseWithChangelog(
                     releaseVersion,
                     pipe.changelog,
