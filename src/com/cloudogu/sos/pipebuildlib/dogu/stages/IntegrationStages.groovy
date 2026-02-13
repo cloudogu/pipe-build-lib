@@ -77,7 +77,7 @@ class IntegrationStages implements DoguStageModule {
 
                     pipe.script.echo '[DEBUG] trivy.metaClass.scanImage overwritten'
 
-                    String trivyVersion = '0.67.2'
+                    String trivyVersion = '0.69.1'
                     String trivyImage = 'aquasec/trivy'
                     String trivyDirectory = 'trivy'
 
