@@ -32,7 +32,7 @@ class ReleaseStages implements DoguStageModule {
             '''
 
             releaseVersion = pipe.git.getSimpleBranchName()
-            productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch()
+            productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch(pipe.defaultBranch)
             developmentBranch = pipe.makefile.determineGitFlowDevelopBranch()
 
             script.sh """
