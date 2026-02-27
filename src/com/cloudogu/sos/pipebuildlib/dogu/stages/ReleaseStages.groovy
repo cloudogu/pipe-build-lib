@@ -24,9 +24,6 @@ class ReleaseStages implements DoguStageModule {
                 script.sh 'git submodule update --init'
             }
 
-            def releaseTagRaw = script.params.ReleaseTag?.trim()
-            def releaseTag = releaseTagRaw.replaceFirst(/^v/, '')
-
             script.sh '''
                 mkdir -p .bin
                 curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o .bin/yq
@@ -34,51 +31,40 @@ class ReleaseStages implements DoguStageModule {
                 sudo apt install git-flow -y
             '''
 
-            script.withCredentials([script.usernamePassword(
-                credentialsId: this.gitUserName,
-                usernameVariable: 'GIT_AUTH_USR',
-                passwordVariable: 'GIT_AUTH_PSW'
-            )]) {
-                script.sh """
-                    git config credential.helper '!f() { echo username=\$GIT_AUTH_USR; echo password=\$GIT_AUTH_PSW; }; f'
-                    git fetch origin +refs/heads/*:refs/remotes/origin/*
+            releaseVersion = pipe.git.getSimpleBranchName()
+            productionReleaseBranch = pipe.makefile.determineGitFlowMainBranch(pipe.defaultBranch)
+            developmentBranch = pipe.makefile.determineGitFlowDevelopBranch()
 
-                    if git show-ref --verify --quiet refs/remotes/origin/main; then
-                        echo main > release_target.txt
-                    elif git show-ref --verify --quiet refs/remotes/origin/master; then
-                        echo master > release_target.txt
-                    else
-                        echo "Neither main nor master found!" >&2
-                        exit 1
-                    fi
+            script.sh """
+                git checkout ${productionReleaseBranch}
+                git checkout ${developmentBranch}
+            """
+
+            script.withEnv(["RELEASE_TAG=${releaseVersion}"]) {
+                script.sh """
+                    echo stage with make dogu-release?! Version ${releaseVersion}
                 """
 
-                def target = script.readFile('release_target.txt').trim()
-
-                script.sh """
-                    git checkout ${target}
-                    git checkout develop
-                """
-
-                script.withEnv(["RELEASE_TAG=${releaseTag}"]) {
-                    script.sh '''
-                        cat > ./git-askpass.sh <<'EOF'
+                /*
+                script.sh '''
+                    cat > ./git-askpass.sh <<'EOF'
 #!/bin/sh
 case "$1" in
-  Username*) echo "$GIT_AUTH_USR" ;;
-  Password*) echo "$GIT_AUTH_PSW" ;;
+Username*) echo "$GIT_AUTH_USR" ;;
+Password*) echo "$GIT_AUTH_PSW" ;;
 esac
 EOF
-                chmod +x ./git-askpass.sh
-                export GIT_ASKPASS=./git-askpass.sh
+            chmod +x ./git-askpass.sh
+            export GIT_ASKPASS=./git-askpass.sh
 
-                {
-                    echo "$RELEASE_TAG"
-                    yes ok
-                } | make dogu-release
-            '''
-                }
+            {
+                echo "$RELEASE_TAG"
+                yes ok
+            } | make dogu-release
+        '''
+        */
             }
+
         }
     }
 

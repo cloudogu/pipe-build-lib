@@ -21,6 +21,7 @@ class DoguConfig {
     Changelog changelog
     Vagrant vagrant
     Markdown markdown
+    Makefile makefile
     Map config
 
     String doguName
@@ -45,6 +46,7 @@ class DoguConfig {
     boolean checkMarkdown
     boolean runShellTests
     String latestTag = ""
+    String defaultBranch
     String nodeCount = "1"
 
     String gitUserName
@@ -97,6 +99,7 @@ class DoguConfig {
         this.checkEOL               = config.checkEOL ?: true
         this.checkMarkdown          = config.checkMarkdown ?: false
         this.runShellTests          = config.runShellTests ?: false
+        this.defaultBranch          = config.defaultBranch ?: "main"
         this.nodeCount              = config.nodeCount ?: "1"
 
         // Objects
@@ -108,6 +111,7 @@ class DoguConfig {
         github = new GitHub(script, git)
         docker = new Docker(script)
         changelog = new Changelog(script)
+        makefile = new Makefile(script)
 
         script.echo "[INFO] Init ecosystem object"
         ecoSystem = new EcoSystem(script, gcloudCredentials, sshCredentials)
@@ -172,7 +176,7 @@ Vagrant.configure(2) do |config|
     google.machine_type = "${machineType}"
     google.disk_type = "pd-ssd"
     # preemptible
-    google.preemptible = true
+    google.preemptible = false
     google.auto_restart = false
     google.on_host_maintenance = "TERMINATE"
 
