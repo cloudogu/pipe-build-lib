@@ -47,6 +47,7 @@ class DoguConfig {
     boolean runShellTests
     String latestTag = ""
     String defaultBranch
+    String nodeCount = "1"
 
     String gitUserName
     String committerEmail
@@ -99,7 +100,7 @@ class DoguConfig {
         this.checkMarkdown          = config.checkMarkdown ?: false
         this.runShellTests          = config.runShellTests ?: false
         this.defaultBranch          = config.defaultBranch ?: "main"
-
+        this.nodeCount              = config.nodeCount ?: "1"
 
         // Objects
         script.echo "[INFO] Authenticate git with ${gitUserName}"
