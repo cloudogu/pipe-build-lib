@@ -24,10 +24,17 @@ Initializes the pipeline with a Jenkins `script` context.
 
 ###  Stage Management
 
-#### `addStage(String name, Closure block, String agentLabel = defaultAgent, boolean parallel = false)`
-Adds a new stage to the pipeline.
-- `agentLabel`: Optional agent label to execute the stage.
-- `parallel`: If true, this stage will be run in parallel with other stages on the same agent.
+#### `addStageGroup(String agentLabel, Closure groupBuilder)`
+Creates a stage group where `groupName` defaults to `agentLabel`.
+If that name already exists, a unique name is auto-generated (e.g. `docker#2`).
+
+#### `addStageGroup(String groupName, String agentLabel, Closure groupBuilder)`
+Creates a stage group with an explicit, stable name.
+- `groupName`: Unique key for the parallel branch and log output.
+- `agentLabel`: Jenkins label on which the group's stages run.
+
+#### `addStage(String name, Closure block, String agentLabel = defaultAgent)`
+Adds a stage to the first group for the given `agentLabel` (or creates one if missing).
 
 #### `insertStageAfter(String afterName, String newName, Closure block, String agentLabel = defaultAgent, boolean parallel = false)`
 Inserts a stage after a given one.
@@ -52,8 +59,9 @@ Assigns multiple stages to different agents using a map.
 ### Execution
 
 #### `run()`
-Groups all added stages by their agent and:
-- Executes sequential and parallel stages on the appropriate agents.
+Executes one parallel branch per stage group name and:
+- Runs each group on its configured `agentLabel`.
+- Executes stages inside one group sequentially.
 - Handles empty scripts or stage lists gracefully with debug logs.
 
 ---
@@ -121,10 +129,12 @@ independent **stage modules** that each contribute their own stages:
 Internally this looks like:
 
 ```groovy
-addStageGroup(agentStatic)   { new StaticStages().register(this, it) }
-addStageGroup(agentVagrant) { new IntegrationStages().register(this, it) }
-addStageGroup(agentVagrant) { new ReleaseStages().register(this, it) }
-addStageGroup(agentMultinode){ new MultinodeStages().register(this, it) }
+addStageGroup("static", agentStatic) { new StaticStages().register(this, it) }
+addStageGroup("multinode", agentMultinode) { new MultinodeStages().register(this, it) }
+addStageGroup("integration", agentVagrant) {
+  new IntegrationStages().register(this, it)
+  new ReleaseStages().register(this, it)
+}
 ```
 
 #### `DoguConfig`
@@ -225,13 +235,14 @@ pipe.run()
 ## 🖥 Agent-Based Stage Groups
 
 Stages in PipeBuildLib are not executed individually --- they are
-grouped into **StageGroups**, and each group is bound to a specific
-**Jenkins agent label**.
+grouped into **StageGroups**. Each group has:
+- a unique **group name** (parallel branch key),
+- a **Jenkins agent label** (execution target).
 
 ``` groovy
-addStageGroup(agentStatic) { group -> ... }
-addStageGroup(agentVagrant) { group -> ... }
-addStageGroup(agentMultinode) { group -> ... }
+addStageGroup("static", agentStatic) { group -> ... }
+addStageGroup("component", agentMultinode) { group -> ... }
+addStageGroup("dogu", agentMultinode) { group -> ... }
 ```
 
 Each `StageGroup` represents **one execution lane on one Jenkins
@@ -242,12 +253,11 @@ agent**.
   -----------------------------------------------------------------------
   Scenario                 What happens
   ------------------------ ----------------------------------------------
-  Two groups with          Run in **parallel** on different machines
-  **different agent        
-  labels**                 
+  Two groups with          Run in **parallel** (possibly on different
+  different group names    machines, depending on matching executors)
 
-  Two groups with the      Run **sequentially** on the same machine
-  **same agent label**     
+  Two groups with the      Both groups still run as separate parallel
+  same agent label         lanes on the same agent pool
 
   Multiple stages inside   Run in the order they were registered
   one group                

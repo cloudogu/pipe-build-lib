@@ -18,10 +18,26 @@ abstract class BasePipe implements Serializable {
     abstract void setBuildProperties(List<ParameterDefinition> customParams)
 
     void addStageGroup(String agentLabel, Closure groupBuilder) {
-        def group = new StageGroup(agentLabel)
+        String groupName = agentLabel
+        int suffix = 2
+        while (stageGroups.any { it.groupName == groupName }) {
+            groupName = "${agentLabel}#${suffix++}"
+        }
+        if (groupName != agentLabel) {
+            script.echo "[WARN] Stage group name '${agentLabel}' already exists. Auto-generated unique name '${groupName}'."
+        }
+        addStageGroup(groupName, agentLabel, groupBuilder)
+    }
+
+    void addStageGroup(String groupName, String agentLabel, Closure groupBuilder) {
+        if (stageGroups.any { it.groupName == groupName }) {
+            throw new IllegalArgumentException("Stage group with name '${groupName}' already exists.")
+        }
+
+        def group = new StageGroup(groupName, agentLabel)
         groupBuilder.call(group)
         stageGroups << group
-        script.echo "[DEBUG] Added stage group for agent '${agentLabel}' with ${group.stages.size()} stages"
+        script.echo "[DEBUG] Added stage group '${groupName}' for agent '${agentLabel}' with ${group.stages.size()} stages"
     }
 
     void addStage(String stageName, Closure block, String agentLabel = defaultAgent) {
@@ -33,10 +49,10 @@ abstract class BasePipe implements Serializable {
         if (!group) {
             group = new StageGroup(agentLabel)
             stageGroups << group
-            script.echo "[DEBUG] Created new StageGroup for agent '${agentLabel}'"
+            script.echo "[DEBUG] Created new StageGroup '${group.groupName}' for agent '${agentLabel}'"
         }
         group.stages << new StageDefinition(stageName, modes, block)
-        script.echo "[DEBUG] Added stage '${stageName}' to agent '${agentLabel}' with modes ${modes}"
+        script.echo "[DEBUG] Added stage '${stageName}' to group '${group.groupName}' (agent '${agentLabel}') with modes ${modes}"
     }
 
     void run() {
@@ -56,7 +72,7 @@ abstract class BasePipe implements Serializable {
         def parallelGroups = [:]
 
         stageGroups.each { group ->
-            parallelGroups[group.agentLabel] = {
+            parallelGroups[group.groupName] = {
                 script.node(group.agentLabel) {
                     script.timestamps {
                         try {
@@ -67,20 +83,20 @@ abstract class BasePipe implements Serializable {
                                 }
                                 if (stage.name != "Clean") {
                                     script.stage(stage.name) {
-                                        script.echo "[DEBUG] Running stage '${stage.name}' on agent '${group.agentLabel}'"
+                                        script.echo "[DEBUG] Running stage '${stage.name}' in group '${group.groupName}' on agent '${group.agentLabel}'"
                                         stage.block.call()
                                     }
                                 }
                             }
                         } catch (Exception e) {
-                            script.echo "[ERROR] Exception caught in group '${group.agentLabel}': ${e}"
+                            script.echo "[ERROR] Exception caught in group '${group.groupName}' (agent '${group.agentLabel}'): ${e}"
                             script.currentBuild.result = 'FAILURE'
                             throw e
                         } finally {
                             def cleanStage = group.stages.find { it.name == "Clean" }
                             if (cleanStage) {
                                 script.stage("Clean") {
-                                    script.echo "[DEBUG] Running cleanup stage on agent '${group.agentLabel}'"
+                                    script.echo "[DEBUG] Running cleanup stage in group '${group.groupName}' on agent '${group.agentLabel}'"
                                     cleanStage.block.call()
                                 }
                             }
@@ -181,9 +197,9 @@ abstract class BasePipe implements Serializable {
     }
 
     void moveStageAfter(String stageToMove, String targetStage, String agentLabel) {
-        def group = stageGroups.find { it.agentLabel == agentLabel }
+        def group = stageGroups.find { it.groupName == agentLabel } ?: stageGroups.find { it.agentLabel == agentLabel }
         if (!group) {
-            script.echo "[WARN] No stage group found for agent '${agentLabel}'"
+            script.echo "[WARN] No stage group found for identifier '${agentLabel}'"
             return
         }
 
@@ -191,7 +207,7 @@ abstract class BasePipe implements Serializable {
         def targetIndex = group.stages.findIndexOf { normalizeStageName(it.name) == normalizeStageName(targetStage) }
 
         if (moveIndex < 0 || targetIndex < 0) {
-            script.echo "[WARN] Cannot move stage '${stageToMove}' after '${targetStage}' in agent '${agentLabel}'"
+            script.echo "[WARN] Cannot move stage '${stageToMove}' after '${targetStage}' in group '${group.groupName}' (agent '${group.agentLabel}')"
             return
         }
 
